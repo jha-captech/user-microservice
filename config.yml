@@ -1,0 +1,13 @@
+env: ${ENV}
+
+database:
+  name: ${DATABASE_NAME}
+  user: ${DATABASE_USER}
+  password: ${DATABASE_PASSWORD}
+  host: ${DATABASE_HOST}
+  port: ${DATABASE_PORT}
+  connection_retry: ${DATABASE_CONNECTION_RETRY}
+
+http:
+  domain: ${HTTP_DOMAIN}
+  port: ${HTTP_PORT}
