@@ -12,16 +12,16 @@ import (
 
 // mocks
 
-type databaseSessionMock struct {
+type databaseMock struct {
 	mock.Mock
 }
 
-func (dsm *databaseSessionMock) ListUsers() ([]entity.User, error) {
+func (dsm *databaseMock) ListUsers() ([]entity.User, error) {
 	args := dsm.Called()
 	return args.Get(0).([]entity.User), args.Error(1)
 }
 
-func (dsm *databaseSessionMock) FetchUser(ID int) (entity.User, error) {
+func (dsm *databaseMock) FetchUser(ID int) (entity.User, error) {
 	args := dsm.Called(ID)
 	return args.Get(0).(entity.User), args.Error(1)
 }
@@ -30,7 +30,7 @@ func (dsm *databaseSessionMock) FetchUser(ID int) (entity.User, error) {
 
 type userSuit struct {
 	suite.Suite
-	databaseMock *databaseSessionMock
+	databaseMock *databaseMock
 	service      Service
 }
 
@@ -39,7 +39,7 @@ func TestUserSuit(t *testing.T) {
 }
 
 func (us *userSuit) SetupTest() {
-	databaseMock := new(databaseSessionMock)
+	databaseMock := new(databaseMock)
 	us.databaseMock = databaseMock
 
 	us.service = NewService(databaseMock)
