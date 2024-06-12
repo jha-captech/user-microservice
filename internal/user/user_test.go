@@ -3,8 +3,8 @@ package user
 import (
 	"testing"
 
-	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"user-microservice/internal/database/entity"
@@ -13,44 +13,25 @@ import (
 // mocks
 
 type databaseSessionMock struct {
-	Users []entity.User
+	mock.Mock
 }
 
-func newDatabaseSessionMock(userCount int) databaseSessionMock {
-	var mockUsers []entity.User
-	for i := 0; i < userCount; i++ {
-		mockUser := entity.User{
-			ID:        uint(faker.RandomUnixTime()),
-			FirstName: faker.FirstName(),
-			LastName:  faker.LastName(),
-			Role:      faker.Word(),
-			UserID:    uint(faker.RandomUnixTime()),
-		}
-		mockUsers = append(mockUsers, mockUser)
-	}
-	return databaseSessionMock{Users: mockUsers}
+func (dsm *databaseSessionMock) ListUsers() ([]entity.User, error) {
+	args := dsm.Called()
+	return args.Get(0).([]entity.User), args.Error(1)
 }
 
-func (dsm databaseSessionMock) ListUsers() ([]entity.User, error) {
-	return dsm.Users, nil
-}
-
-func (dsm databaseSessionMock) FetchUser(ID int) (entity.User, error) {
-	for _, mockUser := range dsm.Users {
-		if mockUser.ID != uint(ID) {
-			continue
-		}
-		return mockUser, nil
-	}
-	return entity.User{}, nil
+func (dsm *databaseSessionMock) FetchUser(ID int) (entity.User, error) {
+	args := dsm.Called(ID)
+	return args.Get(0).(entity.User), args.Error(1)
 }
 
 // test setup
 
 type userSuit struct {
 	suite.Suite
-	userDataMock    []entity.User
-	userServiceMock Service
+	databaseMock *databaseSessionMock
+	service      Service
 }
 
 func TestUserSuit(t *testing.T) {
@@ -58,10 +39,10 @@ func TestUserSuit(t *testing.T) {
 }
 
 func (us *userSuit) SetupTest() {
-	databaseMock := newDatabaseSessionMock(5)
-	us.userDataMock = databaseMock.Users
+	databaseMock := new(databaseSessionMock)
+	us.databaseMock = databaseMock
 
-	us.userServiceMock = NewService(databaseMock)
+	us.service = NewService(databaseMock)
 }
 
 // tests
@@ -69,19 +50,28 @@ func (us *userSuit) SetupTest() {
 func (us *userSuit) TestList() {
 	t := us.T()
 
-	testCases := []struct {
-		name     string
-		expected interface{}
+	testCases := map[string]struct {
+		mockReturnArgs []any
+		expected       any
 	}{
-		{
-			"return list of users",
-			us.userDataMock,
+		"return list of users": {
+			[]any{[]entity.User{}, nil},
+			[]entity.User{},
 		},
 	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			users, err := us.userServiceMock.List()
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			us.databaseMock.
+				On("ListUsers").
+				Return(tc.mockReturnArgs...).
+				Once()
+
+			users, err := us.service.List()
 			assert.NoError(t, err, "error listing users")
+
+			us.databaseMock.AssertCalled(t, "FetchUser")
+			us.databaseMock.AssertExpectations(t)
+
 			assert.Equal(t, users, tc.expected, "expected vs actual users did not match")
 		})
 	}
@@ -91,29 +81,31 @@ func (us *userSuit) TestFetch() {
 	t := us.T()
 
 	testCases := map[string]struct {
-		ID       int
-		expected interface{}
+		mockInputArgs  []any
+		mockReturnArgs []any
+		fetchID        int
+		expected       interface{}
 	}{
 		"return a user": {
-			int(us.userDataMock[1].ID),
-			us.userDataMock[1],
-		},
-		"also return a user": {
-			2,
-			func(ID int) entity.User {
-				for _, user := range us.userDataMock {
-					if user.ID == uint(ID) {
-						return user
-					}
-				}
-				return entity.User{}
-			}(2),
+			[]any{1},
+			[]any{entity.User{}, nil},
+			1,
+			entity.User{},
 		},
 	}
 	for testName, tc := range testCases {
 		t.Run(testName, func(t *testing.T) {
-			user, err := us.userServiceMock.Fetch(tc.ID)
+			us.databaseMock.
+				On("FetchUser", tc.mockInputArgs...).
+				Return(tc.mockReturnArgs...).
+				Once()
+
+			user, err := us.service.Fetch(tc.fetchID)
 			assert.NoError(t, err, "error listing user")
+
+			us.databaseMock.AssertCalled(t, "FetchUser", tc.mockInputArgs...)
+			us.databaseMock.AssertExpectations(t)
+
 			assert.Equal(t, user, tc.expected, "expected vs actual user did not match")
 		})
 	}
