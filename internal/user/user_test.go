@@ -39,10 +39,10 @@ func TestUserSuit(t *testing.T) {
 }
 
 func (us *userSuit) SetupTest() {
-	databaseMock := new(databaseMock)
-	us.databaseMock = databaseMock
+	DBMock := new(databaseMock)
+	us.databaseMock = DBMock
 
-	us.service = NewService(databaseMock)
+	us.service = NewService(DBMock)
 }
 
 // tests
