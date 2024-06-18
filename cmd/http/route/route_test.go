@@ -7,76 +7,55 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gin-gonic/gin"
-	"github.com/go-faker/faker/v4"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"user-microservice/internal/database/entity"
+	"user-microservice/internal/testutil"
 )
 
-// mocks
+// MOCKS
 
 type serviceMock struct {
-	Users []entity.User
+	mock.Mock
 }
 
-func newServiceMock(userCount int) serviceMock {
-	var mockUsers []entity.User
-	for i := 0; i < userCount; i++ {
-		mockUser := entity.User{
-			ID:        uint(faker.RandomUnixTime()),
-			FirstName: faker.FirstName(),
-			LastName:  faker.LastName(),
-			Role:      faker.Word(),
-			UserID:    uint(faker.RandomUnixTime()),
-		}
-		mockUsers = append(mockUsers, mockUser)
-	}
-	return serviceMock{Users: mockUsers}
+func (sm *serviceMock) List() ([]entity.User, error) {
+	args := sm.Called()
+	return args.Get(0).([]entity.User), args.Error(1)
 }
 
-func (sm serviceMock) List() ([]entity.User, error) {
-	return sm.Users, nil
+func (sm *serviceMock) Fetch(ID int) (entity.User, error) {
+	args := sm.Called(ID)
+	return args.Get(0).(entity.User), args.Error(1)
 }
 
-func (sm serviceMock) Fetch(ID int) (entity.User, error) {
-	for _, mockUser := range sm.Users {
-		if mockUser.ID != uint(ID) {
-			continue
-		}
-		return mockUser, nil
-	}
-	return entity.User{}, nil
-}
-
-// test setup
+// TEST SETUP
 
 type routerSuit struct {
 	suite.Suite
-	router       *gin.Engine
-	userDataMock []entity.User
+	router   *chi.Mux
+	userMock *serviceMock
+	users    []entity.User
 }
 
 func TestRouterSuit(t *testing.T) {
 	suite.Run(t, new(routerSuit))
 }
 
-func (rs *routerSuit) SetupTest() {
-	userServiceMock := newServiceMock(5)
-	rs.userDataMock = userServiceMock.Users
-	rs.router = gin.Default()
+func (rs *routerSuit) SetupSuite() {
+	userServiceMock := new(serviceMock)
+	rs.userMock = userServiceMock
 	handler := NewHandler(userServiceMock)
+
+	rs.router = chi.NewRouter()
 	SetUpRoutes(rs.router, handler)
 }
 
-func structToJSONString[T any](data T) string {
-	dataString, _ := json.Marshal(data)
-	return string(dataString)
-}
-
-// tests
+// TESTS
 
 func (rs *routerSuit) TestHealthCheck() {
 	t := rs.T()
@@ -111,27 +90,37 @@ func (rs *routerSuit) TestHealthCheck() {
 func (rs *routerSuit) TestUserList() {
 	t := rs.T()
 
+	users := testutil.NewUsers(3, testutil.WithIDStartRange(1))
+
 	testCases := map[string]struct {
+		mockReturnArgs []any
 		method         string
 		path           string
 		expectedStatus int
-		expectedBody   interface{}
+		expectedBody   any
 	}{
 		"200 - Good call": {
+			[]any{users, nil},
 			http.MethodGet,
 			"/user/",
 			http.StatusOK,
-			responseAllUsers{Users: rs.userDataMock},
+			responseAllUsers{Users: users},
 		},
 		"404 - wrong verb": {
+			[]any{},
 			http.MethodPost,
 			"/user/",
 			http.StatusNotFound,
-			responseNotFound{Message: "Page not found"},
+			responseMessage{Message: "Page not found"},
 		},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
+			rs.userMock.
+				On("List").
+				Return(tc.mockReturnArgs...).
+				Once()
+
 			w := httptest.NewRecorder()
 			req, _ := http.NewRequest(tc.method, tc.path, nil)
 			rs.router.ServeHTTP(w, req)
@@ -147,39 +136,56 @@ func (rs *routerSuit) TestUserList() {
 func (rs *routerSuit) TestUserFetch() {
 	t := rs.T()
 
+	user := testutil.NewUser()
+
 	testCases := map[string]struct {
+		mockInputArgs  []any
+		mockReturnArgs []any
 		method         string
 		path           string
 		expectedStatus int
-		expectedBody   interface{}
+		expectedBody   any
 	}{
 		"200 - Good call": {
+			[]any{int(user.ID)},
+			[]any{user, nil},
 			http.MethodGet,
-			fmt.Sprintf("/user/%d", int(rs.userDataMock[1].ID)),
+			fmt.Sprintf("/user/%d", int(user.ID)),
 			http.StatusOK,
-			responseOneUser{User: rs.userDataMock[1]},
+			responseOneUser{User: rs.users[1]},
 		},
 		"200 - Good call, no user": {
+			[]any{int(user.ID) + 1},
+			[]any{entity.User{}, nil},
 			http.MethodGet,
-			fmt.Sprintf("/user/%d", len(rs.userDataMock)+1),
+			fmt.Sprintf("/user/%d", len(rs.users)+1),
 			http.StatusOK,
 			responseOneUser{User: entity.User{}},
 		},
 		"400 - not a valid ID": {
+			[]any{},
+			[]any{},
 			http.MethodGet,
 			"/user/id",
 			http.StatusBadRequest,
 			responseError{Error: "Not a valid ID"},
 		},
 		"404 - wrong verb": {
+			[]any{},
+			[]any{},
 			http.MethodPost,
 			"/user/1",
 			http.StatusNotFound,
-			responseNotFound{Message: "Page not found"},
+			responseMessage{Message: "Page not found"},
 		},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
+			rs.userMock.
+				On("Fetch", tc.mockInputArgs...).
+				Return(tc.mockReturnArgs...).
+				Once()
+
 			w := httptest.NewRecorder()
 			req, _ := http.NewRequest(tc.method, tc.path, nil)
 			rs.router.ServeHTTP(w, req)

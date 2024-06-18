@@ -1,7 +1,7 @@
 package route
 
 import (
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
 
 	"user-microservice/internal/database/entity"
 )
@@ -31,10 +31,19 @@ func NewHandler(userService userService) Handler {
 	return Handler{userService: userService}
 }
 
-func SetUpRoutes(r *gin.Engine, h Handler) {
-	healthCheck(r.Group("/health-check"), h)
+func SetUpRoutes(r *chi.Mux, h Handler) {
+	// For demonstration purposes, there are two versions of health check that show the two ways of
+	// using http handlers with chi and the standard library.
+	// "/health-check" uses an anonymous handler func inside a route function
+	// "/health-check/v2" uses a names function as a closure for a http.HandlerFunc
 
-	userRoutes(r.Group("/user"), h)
+	r.Route("/health-check", healthCheck(h))
+
+	r.Route("/health-check/v2", func(r chi.Router) {
+		r.Get("/", handleHealthCheck(h))
+	})
+
+	r.Route("/user", userRoutes(h))
 
 	notFound(r)
 }
