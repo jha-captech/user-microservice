@@ -7,18 +7,17 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gin-gonic/gin"
-
-	"github.com/go-faker/faker/v4"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"user-microservice/internal/database/entity"
+	"user-microservice/internal/testutil"
 )
 
-// mocks
+// MOCKS
 
 type serviceMock struct {
 	mock.Mock
@@ -34,26 +33,11 @@ func (sm *serviceMock) Fetch(ID int) (entity.User, error) {
 	return args.Get(0).(entity.User), args.Error(1)
 }
 
-// test setup
-
-func generateUsers(count int) []entity.User {
-	var users []entity.User
-	for i := 0; i < count; i++ {
-		user := entity.User{
-			ID:        uint(faker.RandomUnixTime()),
-			FirstName: faker.FirstName(),
-			LastName:  faker.LastName(),
-			Role:      faker.Word(),
-			UserID:    uint(faker.RandomUnixTime()),
-		}
-		users = append(users, user)
-	}
-	return users
-}
+// TEST SETUP
 
 type routerSuit struct {
 	suite.Suite
-	router   *gin.Engine
+	router   *chi.Mux
 	userMock *serviceMock
 	users    []entity.User
 }
@@ -62,18 +46,16 @@ func TestRouterSuit(t *testing.T) {
 	suite.Run(t, new(routerSuit))
 }
 
-func (rs *routerSuit) SetupTest() {
-	rs.users = generateUsers(5)
-
+func (rs *routerSuit) SetupSuite() {
 	userServiceMock := new(serviceMock)
 	rs.userMock = userServiceMock
 	handler := NewHandler(userServiceMock)
 
-	rs.router = gin.Default()
+	rs.router = chi.NewRouter()
 	SetUpRoutes(rs.router, handler)
 }
 
-// tests
+// TESTS
 
 func (rs *routerSuit) TestHealthCheck() {
 	t := rs.T()
@@ -108,6 +90,8 @@ func (rs *routerSuit) TestHealthCheck() {
 func (rs *routerSuit) TestUserList() {
 	t := rs.T()
 
+	users := testutil.NewUsers(3, testutil.WithIDStartRange(1))
+
 	testCases := map[string]struct {
 		mockReturnArgs []any
 		method         string
@@ -116,18 +100,18 @@ func (rs *routerSuit) TestUserList() {
 		expectedBody   any
 	}{
 		"200 - Good call": {
-			[]any{rs.users, nil},
+			[]any{users, nil},
 			http.MethodGet,
 			"/user/",
 			http.StatusOK,
-			responseAllUsers{Users: rs.users},
+			responseAllUsers{Users: users},
 		},
 		"404 - wrong verb": {
 			[]any{},
 			http.MethodPost,
 			"/user/",
 			http.StatusNotFound,
-			responseNotFound{Message: "Page not found"},
+			responseMessage{Message: "Page not found"},
 		},
 	}
 	for name, tc := range testCases {
@@ -152,6 +136,8 @@ func (rs *routerSuit) TestUserList() {
 func (rs *routerSuit) TestUserFetch() {
 	t := rs.T()
 
+	user := testutil.NewUser()
+
 	testCases := map[string]struct {
 		mockInputArgs  []any
 		mockReturnArgs []any
@@ -161,15 +147,15 @@ func (rs *routerSuit) TestUserFetch() {
 		expectedBody   any
 	}{
 		"200 - Good call": {
-			[]any{int(rs.users[1].ID)},
-			[]any{rs.users[1], nil},
+			[]any{int(user.ID)},
+			[]any{user, nil},
 			http.MethodGet,
-			fmt.Sprintf("/user/%d", int(rs.users[1].ID)),
+			fmt.Sprintf("/user/%d", int(user.ID)),
 			http.StatusOK,
 			responseOneUser{User: rs.users[1]},
 		},
 		"200 - Good call, no user": {
-			[]any{len(rs.users) + 1},
+			[]any{int(user.ID) + 1},
 			[]any{entity.User{}, nil},
 			http.MethodGet,
 			fmt.Sprintf("/user/%d", len(rs.users)+1),
@@ -190,7 +176,7 @@ func (rs *routerSuit) TestUserFetch() {
 			http.MethodPost,
 			"/user/1",
 			http.StatusNotFound,
-			responseNotFound{Message: "Page not found"},
+			responseMessage{Message: "Page not found"},
 		},
 	}
 	for name, tc := range testCases {

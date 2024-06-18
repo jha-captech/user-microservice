@@ -6,7 +6,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN go build ./cmd/http/main.go
+RUN go build ./cmd/http main.exe
 
 FROM alpine:3.19 AS publish
 

@@ -3,18 +3,11 @@ package route
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
 )
 
-type responseNotFound struct {
-	Message string `json:"message"`
-}
-
-func notFound(r *gin.Engine) {
-	r.NoRoute(func(c *gin.Context) {
-		c.JSON(
-			http.StatusNotFound,
-			responseNotFound{Message: "Page not found"},
-		)
+func notFound(r chi.Router) {
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		encode(w, http.StatusNotFound, responseMessage{Message: "Page not found"})
 	})
 }
