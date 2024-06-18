@@ -3,15 +3,16 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 
 	"user-microservice/cmd/http/route"
 	"user-microservice/internal/database"
 	"user-microservice/internal/user"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 
 	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -32,16 +33,18 @@ func RunHTTP() {
 				config.Database.Port,
 			),
 		),
-		gorm.Config{},
-		config.Database.ConnectionRetry,
+		database.WithRetryCount(5),
+		database.WithAutoMigrate(true),
 	)
 	us := user.NewService(db)
 
 	h := route.NewHandler(us)
 
-	r := gin.Default()
+	r := chi.NewRouter()
+
+	r.Use(middleware.Logger)
 
 	route.SetUpRoutes(r, h)
 
-	log.Fatal(r.Run(config.HTTP.Port))
+	log.Fatal(http.ListenAndServe(config.HTTP.Port, r))
 }

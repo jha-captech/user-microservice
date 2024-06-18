@@ -3,85 +3,82 @@ package user
 import (
 	"testing"
 
-	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"user-microservice/internal/database/entity"
+	"user-microservice/internal/testutil"
 )
 
-// mocks
+// MOCKS
 
-type databaseSessionMock struct {
-	Users []entity.User
+type databaseMock struct {
+	mock.Mock
 }
 
-func newDatabaseSessionMock(userCount int) databaseSessionMock {
-	var mockUsers []entity.User
-	for i := 0; i < userCount; i++ {
-		mockUser := entity.User{
-			ID:        uint(faker.RandomUnixTime()),
-			FirstName: faker.FirstName(),
-			LastName:  faker.LastName(),
-			Role:      faker.Word(),
-			UserID:    uint(faker.RandomUnixTime()),
-		}
-		mockUsers = append(mockUsers, mockUser)
-	}
-	return databaseSessionMock{Users: mockUsers}
+func (dsm *databaseMock) ListUsers() ([]entity.User, error) {
+	args := dsm.Called()
+	return args.Get(0).([]entity.User), args.Error(1)
 }
 
-func (dsm databaseSessionMock) ListUsers() ([]entity.User, error) {
-	return dsm.Users, nil
+func (dsm *databaseMock) FetchUser(ID int) (entity.User, error) {
+	args := dsm.Called(ID)
+	return args.Get(0).(entity.User), args.Error(1)
 }
 
-func (dsm databaseSessionMock) FetchUser(ID int) (entity.User, error) {
-	for _, mockUser := range dsm.Users {
-		if mockUser.ID != uint(ID) {
-			continue
-		}
-		return mockUser, nil
-	}
-	return entity.User{}, nil
-}
-
-// test setup
+// TEST SETUP
 
 type userSuit struct {
 	suite.Suite
-	userDataMock    []entity.User
-	userServiceMock Service
+	databaseMock *databaseMock
+	service      Service
 }
 
 func TestUserSuit(t *testing.T) {
 	suite.Run(t, new(userSuit))
 }
 
-func (us *userSuit) SetupTest() {
-	databaseMock := newDatabaseSessionMock(5)
-	us.userDataMock = databaseMock.Users
+func (us *userSuit) SetupSuite() {
+	DBMock := new(databaseMock)
+	us.databaseMock = DBMock
 
-	us.userServiceMock = NewService(databaseMock)
+	us.service = NewService(DBMock)
 }
 
-// tests
+// TESTS
 
 func (us *userSuit) TestList() {
 	t := us.T()
 
-	testCases := []struct {
-		name     string
-		expected interface{}
+	users := []entity.User{
+		testutil.NewUser(),
+		testutil.NewUser(),
+		testutil.NewUser(),
+	}
+
+	testCases := map[string]struct {
+		mockReturnArgs []any
+		expected       any
 	}{
-		{
-			"return list of users",
-			us.userDataMock,
+		"return list of users": {
+			[]any{users, nil},
+			users,
 		},
 	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			users, err := us.userServiceMock.List()
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			us.databaseMock.
+				On("ListUsers").
+				Return(tc.mockReturnArgs...).
+				Once()
+
+			users, err := us.service.List()
 			assert.NoError(t, err, "error listing users")
+
+			us.databaseMock.AssertCalled(t, "ListUsers")
+			us.databaseMock.AssertExpectations(t)
+
 			assert.Equal(t, users, tc.expected, "expected vs actual users did not match")
 		})
 	}
@@ -90,30 +87,40 @@ func (us *userSuit) TestList() {
 func (us *userSuit) TestFetch() {
 	t := us.T()
 
+	user := testutil.NewUser()
+
 	testCases := map[string]struct {
-		ID       int
-		expected interface{}
+		mockInputArgs  []any
+		mockReturnArgs []any
+		fetchID        int
+		expected       interface{}
 	}{
 		"return a user": {
-			int(us.userDataMock[1].ID),
-			us.userDataMock[1],
+			[]any{int(user.ID)},
+			[]any{user, nil},
+			int(user.ID),
+			user,
 		},
-		"also return a user": {
-			2,
-			func(ID int) entity.User {
-				for _, user := range us.userDataMock {
-					if user.ID == uint(ID) {
-						return user
-					}
-				}
-				return entity.User{}
-			}(2),
+		"fail to find user": {
+			[]any{int(user.ID) + 1},
+			[]any{entity.User{}, nil},
+			int(user.ID) + 1,
+			entity.User{},
 		},
 	}
 	for testName, tc := range testCases {
 		t.Run(testName, func(t *testing.T) {
-			user, err := us.userServiceMock.Fetch(tc.ID)
+			us.databaseMock.
+				On("FetchUser", tc.mockInputArgs...).
+				Return(tc.mockReturnArgs...).
+				Once()
+
+			user, err := us.service.Fetch(tc.fetchID)
 			assert.NoError(t, err, "error listing user")
+
+			us.databaseMock.AssertCalled(t, "FetchUser", tc.mockInputArgs...)
+			us.databaseMock.AssertExpectations(t)
+
 			assert.Equal(t, user, tc.expected, "expected vs actual user did not match")
 		})
 	}
