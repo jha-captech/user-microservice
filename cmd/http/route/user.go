@@ -1,7 +1,6 @@
 package route
 
 import (
-	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -25,7 +24,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			// get values from db
 			users, err := h.userService.List()
 			if err != nil {
-				slog.Error("error getting all locations", "error", err)
+				h.logger.Error("error getting all locations", "error", err)
 				encode(
 					w,
 					http.StatusInternalServerError,
@@ -44,7 +43,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			idString := chi.URLParam(r, "ID")
 			ID, err := strconv.Atoi(idString)
 			if err != nil {
-				slog.Error("error getting ID", "error", err)
+				h.logger.Error("error getting ID", "error", err)
 				encode(w, http.StatusBadRequest, responseError{Error: "Not a valid ID"})
 				return
 			}
@@ -52,7 +51,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			// get values from db
 			user, err := h.userService.Fetch(ID)
 			if err != nil {
-				slog.Error("error getting all locations", "error", err)
+				h.logger.Error("error getting all locations", "error", err)
 				encode(
 					w,
 					http.StatusInternalServerError,

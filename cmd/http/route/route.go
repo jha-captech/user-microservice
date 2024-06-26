@@ -1,6 +1,8 @@
 package route
 
 import (
+	"log/slog"
+
 	"github.com/go-chi/chi/v5"
 
 	"user-microservice/internal/database/entity"
@@ -25,10 +27,14 @@ type userService interface {
 
 type Handler struct {
 	userService userService
+	logger      *slog.Logger
 }
 
-func NewHandler(userService userService) Handler {
-	return Handler{userService: userService}
+func NewHandler(userService userService, logger *slog.Logger) Handler {
+	return Handler{
+		userService: userService,
+		logger:      logger,
+	}
 }
 
 func SetUpRoutes(r *chi.Mux, h Handler) {
@@ -45,5 +51,5 @@ func SetUpRoutes(r *chi.Mux, h Handler) {
 
 	r.Route("/user", userRoutes(h))
 
-	notFound(r)
+	notFound(r, h)
 }

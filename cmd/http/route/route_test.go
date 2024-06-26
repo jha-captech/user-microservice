@@ -3,6 +3,7 @@ package route
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -49,7 +50,10 @@ func TestRouterSuit(t *testing.T) {
 func (rs *routerSuit) SetupSuite() {
 	userServiceMock := new(serviceMock)
 	rs.userMock = userServiceMock
-	handler := NewHandler(userServiceMock)
+
+	logger := slog.Default()
+
+	handler := NewHandler(userServiceMock, logger)
 
 	rs.router = chi.NewRouter()
 	SetUpRoutes(rs.router, handler)

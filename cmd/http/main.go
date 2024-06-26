@@ -22,6 +22,8 @@ func main() {
 func RunHTTP() {
 	config := mustNewConfiguration()
 
+	logger := newLogger()
+
 	db := database.MustNewDatabase(
 		postgres.Open(
 			fmt.Sprintf(
@@ -36,13 +38,15 @@ func RunHTTP() {
 		database.WithRetryCount(5),
 		database.WithAutoMigrate(true),
 	)
-	us := user.NewService(db)
 
-	h := route.NewHandler(us)
+	us := user.NewService(db, logger)
+
+	h := route.NewHandler(us, logger)
 
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 
 	route.SetUpRoutes(r, h)
 
