@@ -1,6 +1,7 @@
 package user
 
 import (
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,7 +44,9 @@ func (us *userSuit) SetupSuite() {
 	DBMock := new(databaseMock)
 	us.databaseMock = DBMock
 
-	us.service = NewService(DBMock)
+	logger := slog.Default()
+
+	us.service = NewService(DBMock, logger)
 }
 
 // TESTS
