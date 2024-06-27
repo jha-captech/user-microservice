@@ -35,13 +35,13 @@ func New(userService userService, logger *slog.Logger) Handler {
 	}
 }
 
-func Run(handler Handler) APIGatewayHandler {
+func Run(h Handler) APIGatewayHandler {
 	return func(ctx context.Context, request Request) (Response, error) {
 		switch {
 		case request.HTTPMethod == http.MethodGet && request.PathParameters != nil:
-			return handler.fetchUser(request)
+			return h.fetchUser(request)
 		case request.HTTPMethod == http.MethodPost:
-			return handler.fetchUser(request)
+			return h.fetchUser(request)
 		default:
 			return Response{StatusCode: http.StatusMethodNotAllowed}, nil
 		}
