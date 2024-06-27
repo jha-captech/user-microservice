@@ -2,7 +2,6 @@ package user
 
 import (
 	"fmt"
-	"log/slog"
 
 	"user-microservice/internal/database/entity"
 )
@@ -14,13 +13,11 @@ type databaseSession interface {
 
 type Service struct {
 	Database databaseSession
-	logger   *slog.Logger
 }
 
-func NewService(db databaseSession, logger *slog.Logger) Service {
+func NewService(db databaseSession) Service {
 	return Service{
 		Database: db,
-		logger:   logger,
 	}
 }
 

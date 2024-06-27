@@ -35,11 +35,12 @@ func RunHTTP() {
 				config.Database.Port,
 			),
 		),
+		database.WithLogger(logger),
 		database.WithRetryCount(5),
 		database.WithAutoMigrate(true),
 	)
 
-	us := user.NewService(db, logger)
+	us := user.NewService(db)
 
 	h := route.NewHandler(us, logger)
 
