@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"gorm.io/gorm"
@@ -20,6 +21,7 @@ type dbSetupOptions struct {
 	connectionRetry int
 	runMigrations   bool
 	gormConfig      gorm.Config
+	logger          *slog.Logger
 }
 
 func WithRetryCount(count int) Options {
@@ -40,6 +42,12 @@ func WithGormConfig(config gorm.Config) Options {
 	}
 }
 
+func WithLogger(logger *slog.Logger) Options {
+	return func(setup *dbSetupOptions) {
+		setup.logger = logger
+	}
+}
+
 // MustNewDatabase Establish session connection and migrate tables before
 // returning database.Database struct.
 func MustNewDatabase(d gorm.Dialector, options ...Options) Database {
@@ -47,6 +55,7 @@ func MustNewDatabase(d gorm.Dialector, options ...Options) Database {
 		connectionRetry: 5,
 		runMigrations:   false,
 		gormConfig:      gorm.Config{},
+		logger:          slog.New(slog.NewJSONHandler(os.Stdout, nil)),
 	}
 
 	for _, option := range options {
@@ -82,13 +91,13 @@ func MustNewDatabase(d gorm.Dialector, options ...Options) Database {
 		panic(fmt.Sprintf("dataBaseConnect: %v", err))
 	}
 
-	slog.Info("Database connection established", "Retry count", retryCount)
+	opts.logger.Info("Database connection established", "Retry count", retryCount)
 
 	if opts.runMigrations {
 		if err = DB.AutoMigrate(&entity.User{}); err != nil {
 			panic(fmt.Sprintf("autoMigrate error: %v", err))
 		}
-		slog.Info("Database migration successful")
+		opts.logger.Info("Database migration successful")
 	}
 
 	return Database{Session: DB}
