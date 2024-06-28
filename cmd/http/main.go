@@ -22,7 +22,7 @@ func main() {
 func RunHTTP() {
 	config := mustNewConfiguration()
 
-	logger := newLogger()
+	logger := newLogger(false)
 
 	db := database.MustNewDatabase(
 		postgres.Open(

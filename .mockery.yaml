@@ -1,0 +1,11 @@
+with-expecter: true
+packages:
+  user-microservice/internal/user:
+    config:
+      filename: "{{.InterfaceName | lower }}.go"
+      dir: "{{.InterfaceDir}}/mock"
+      mockname: "Mock{{.InterfaceName}}"
+      outpkg: "mock"
+      inpackage: false
+    interfaces:
+      databaseSession:

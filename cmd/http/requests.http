@@ -1,8 +1,34 @@
-###
-GET http://localhost:8080/health-check
+### health check
+GET http://localhost:8080/api/health-check
 
-###
-GET http://localhost:8080/user
+### list users
+GET http://localhost:8080/api/user
 
-###
-GET http://localhost:8080/user/1
+### fetch user by id
+GET http://localhost:8080/api/user/12
+
+### Update a user by ID
+PUT http://localhost:8080/api/user/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "first_name": "John",
+  "last_name": "Doe",
+  "role": "Customer",
+  "user_id": 1001
+}
+
+### Create a user
+POST http://localhost:8080/api/user
+Content-Type: application/json
+
+{
+  "first_name": "John",
+  "last_name": "DoeNewNew",
+  "role": "Customer",
+  "user_id": 1012
+}
+
+### Delete a user by ID
+DELETE http://localhost:8080/api/user/16

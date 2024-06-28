@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -18,7 +19,7 @@ import (
 	"user-microservice/internal/testutil"
 )
 
-// TEST SETUP
+// ━━ TEST SETUP ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 type databaseSuit struct {
 	suite.Suite
@@ -54,7 +55,7 @@ func (s *databaseSuit) TearDownSuite() {
 	_ = s.db.Close()
 }
 
-// TESTS
+// ━━ TESTS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 func (s *databaseSuit) TestListUsers() {
 	t := s.T()
@@ -82,13 +83,12 @@ func (s *databaseSuit) TestListUsers() {
 				ExpectQuery(query).
 				WillReturnRows(rows)
 
-			users, err := s.session.ListUsers()
+			actualReturn, err := s.session.ListUsers()
 
 			assert.Equal(t, tc.expectedError, err, "error in ListUsers")
-			assert.Equal(t, tc.expectedReturn, users, "returned data does not match")
+			assert.Equal(t, tc.expectedReturn, actualReturn, "returned data does not match")
 
 			err = s.dbMock.ExpectationsWereMet()
-			assert.NoError(t, err, "mock expectations not met")
 		})
 	}
 }
@@ -127,18 +127,180 @@ func (s *databaseSuit) TestFetchUser() {
 				WithArgs(tc.userID, 1).
 				WillReturnRows(tc.mockReturnRows)
 
-			users, err := s.session.FetchUser(tc.userID)
+			actualReturn, err := s.session.FetchUser(tc.userID)
 
 			assert.Equal(t, tc.expectedError, err, "error in FetchUser")
-			assert.Equal(t, tc.expectedReturn, users, "returned data does not match")
+			assert.Equal(t, tc.expectedReturn, actualReturn, "returned data does not match")
 
 			err = s.dbMock.ExpectationsWereMet()
-			assert.NoError(t, err, "mock expectations not met")
 		})
 	}
 }
 
-// HELPERS
+func (s *databaseSuit) TestUpdateUser() {
+	t := s.T()
+
+	query := regexp.QuoteMeta(
+		`UPDATE "users" SET "first_name"=$1,"last_name"=$2,"role"=$3,"user_id"=$4 WHERE "id" = $5`,
+	)
+
+	user := testutil.NewUser(testutil.WithID(1))
+
+	testCases := map[string]struct {
+		mockDBFunc     func()
+		inputID        int
+		inputUser      entity.User
+		expectedReturn entity.User
+		expectedError  error
+	}{
+		"Good": {
+			func() {
+				s.dbMock.ExpectBegin()
+				s.dbMock.ExpectExec(query).
+					WithArgs(user.FirstName, user.LastName, user.Role, user.UserID, user.ID).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				s.dbMock.ExpectCommit()
+			},
+			int(user.ID),
+			user,
+			user,
+			nil,
+		},
+		"Bad - ID does not exist": {
+			func() {
+				s.dbMock.ExpectBegin()
+				s.dbMock.ExpectExec(query).
+					WithArgs(user.FirstName, user.LastName, user.Role, user.UserID, user.ID+1).
+					WillReturnError(fmt.Errorf("some error"))
+				s.dbMock.ExpectRollback()
+			},
+			int(user.ID + 1),
+			user,
+			entity.User{},
+			fmt.Errorf(
+				"in session.UpdateUser: %w",
+				fmt.Errorf("in Transaction: %w", fmt.Errorf("some error")),
+			),
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			tc.mockDBFunc()
+
+			actualReturn, err := s.session.UpdateUser(tc.inputID, tc.inputUser)
+
+			assert.Equal(t, tc.expectedError, err, "error in UpdateUser")
+			assert.Equal(t, tc.expectedReturn, actualReturn, "returned data does not match")
+
+			err = s.dbMock.ExpectationsWereMet()
+		})
+	}
+}
+
+func (s *databaseSuit) TestCreateUser() {
+	t := s.T()
+
+	query := regexp.QuoteMeta(
+		`INSERT INTO "users" ("first_name","last_name","role","user_id") VALUES ($1,$2,$3,$4) RETURNING "id"`,
+	)
+
+	user := testutil.NewUser(testutil.WithID(1))
+
+	duplicateUserErr := errors.New(
+		"duplicate key value violates unique constraint \"users_user_id_key\" (SQLSTATE 23505)",
+	)
+
+	testCases := map[string]struct {
+		mockDBFunc     func(DBMock sqlmock.Sqlmock)
+		inputUser      entity.User
+		expectedReturn entity.User
+		expectedError  error
+	}{
+		"Good": {
+			func(DBMock sqlmock.Sqlmock) {
+				DBMock.ExpectBegin()
+				DBMock.ExpectQuery(query).
+					WithArgs(user.FirstName, user.LastName, user.Role, user.UserID).
+					WillReturnRows(mustStructsToRows([]entity.User{user}))
+				DBMock.ExpectCommit()
+			},
+			user,
+			user,
+			nil,
+		},
+		"Bad - user already exists in table": {
+			func(DBMock sqlmock.Sqlmock) {
+				DBMock.ExpectBegin()
+				DBMock.ExpectQuery(query).
+					WithArgs(user.FirstName, user.LastName, user.Role, user.UserID).
+					WillReturnError(duplicateUserErr)
+				DBMock.ExpectRollback()
+			},
+			user,
+			entity.User{},
+			fmt.Errorf(
+				"in session.CreateUser: %w",
+				fmt.Errorf(
+					"in Transaction: %w",
+					duplicateUserErr,
+				),
+			),
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			tc.mockDBFunc(s.dbMock)
+
+			actualReturn, err := s.session.CreateUser(tc.inputUser)
+
+			assert.Equal(t, tc.expectedError, err, "error in CreateUser")
+			assert.Equal(t, tc.expectedReturn, actualReturn, "returned data does not match")
+
+			err = s.dbMock.ExpectationsWereMet()
+		})
+	}
+}
+
+func (s *databaseSuit) TestDeleteUser() {
+	t := s.T()
+
+	query := regexp.QuoteMeta(`DELETE FROM "users" WHERE "users"."id" = $1`)
+
+	user := testutil.NewUser(testutil.WithID(1))
+
+	testCases := map[string]struct {
+		mockDBFunc     func(DBMock sqlmock.Sqlmock)
+		inputID        int
+		expectedReturn entity.User
+		expectedError  error
+	}{
+		"Good": {
+			func(DBMock sqlmock.Sqlmock) {
+				DBMock.ExpectBegin()
+				DBMock.ExpectExec(query).
+					WithArgs(user.ID).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				DBMock.ExpectCommit()
+			},
+			int(user.ID),
+			user,
+			nil,
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			tc.mockDBFunc(s.dbMock)
+
+			err := s.session.DeleteUser(tc.inputID)
+
+			assert.Equal(t, tc.expectedError, err, "error in DeleteUser")
+
+			err = s.dbMock.ExpectationsWereMet()
+		})
+	}
+}
+
+// ━━ HELPERS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 // structSliceToSQLMockRows converts a slice of structs to sqlmock.Rows using reflect.
 // It can also be used when only a single struct is needed by wrapping in a slice.

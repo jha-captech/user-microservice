@@ -22,7 +22,10 @@ type responseError struct {
 
 type userService interface {
 	List() ([]entity.User, error)
-	Fetch(ID int) (entity.User, error)
+	Fetch(int) (entity.User, error)
+	Update(int, entity.User) (entity.User, error)
+	Create(entity.User) (int, error)
+	Delete(int) error
 }
 
 type Handler struct {
@@ -30,6 +33,7 @@ type Handler struct {
 	logger      *slog.Logger
 }
 
+// NewHandler creates and returns a new Handler struct.
 func NewHandler(userService userService, logger *slog.Logger) Handler {
 	return Handler{
 		userService: userService,
@@ -37,19 +41,21 @@ func NewHandler(userService userService, logger *slog.Logger) Handler {
 	}
 }
 
+// SetUpRoutes sets up routes using a *chi.Mux.
 func SetUpRoutes(r *chi.Mux, h Handler) {
-	// For demonstration purposes, there are two versions of health check that show the two ways of
-	// using http handlers with chi and the standard library.
-	// "/health-check" uses an anonymous handler func inside a route function
-	// "/health-check/v2" uses a names function as a closure for a http.HandlerFunc
+	r.Route("/api", func(r chi.Router) {
+		// For demonstration purposes, there are two versions of health check that show the two ways of
+		// using http handlers with chi and the standard library.
+		// "/health-check" uses an anonymous handler func inside a route function
+		// "/health-check/v2" uses a names function as a closure for a http.HandlerFunc
+		r.Route("/health-check", healthCheck(h))
 
-	r.Route("/health-check", healthCheck(h))
+		r.Route("/health-check/v2", func(r chi.Router) {
+			r.Get("/", handleHealthCheck(h))
+		})
 
-	r.Route("/health-check/v2", func(r chi.Router) {
-		r.Get("/", handleHealthCheck(h))
+		r.Route("/user", userRoutes(h))
 	})
-
-	r.Route("/user", userRoutes(h))
 
 	notFound(r, h)
 }
