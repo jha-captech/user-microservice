@@ -5,7 +5,10 @@ import (
 	"os"
 )
 
-func newLogger() *slog.Logger {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+func newLogger(useJSON bool) *slog.Logger {
+	logger := slog.Default()
+	if useJSON {
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	}
 	return logger
 }
