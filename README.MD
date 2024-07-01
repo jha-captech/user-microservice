@@ -1,8 +1,13 @@
 # user-microservice
 
-## Database: PostgreSQL In Docker
+## Database: PostgresSQL In Docker
 
-### Install/Run Database 
+### Setup And Seed Database
+```cmd
+make db_seed
+```
+
+### Start Database
 ```cmd
 make up
 ```
@@ -14,7 +19,7 @@ make down
 
 ## App: Gin
 
-### Start
+### Start Dev
 ```cmd
 make http_dev
 ```
