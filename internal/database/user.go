@@ -15,7 +15,7 @@ import (
 // SELECT * FROM "users"
 func (db Database) ListUsers() ([]entity.User, error) {
 	var users []entity.User
-	err := db.Session.Debug().Find(&users).Error
+	err := db.Session.Find(&users).Error
 	if err != nil {
 		return users, fmt.Errorf("in session.ListUsers: %w", err)
 	}
@@ -28,7 +28,7 @@ func (db Database) ListUsers() ([]entity.User, error) {
 // SELECT * FROM "users" WHERE ID = $1 ORDER BY "users"."id" LIMIT 1
 func (db Database) FetchUser(ID int) (entity.User, error) {
 	var user entity.User
-	err := db.Session.Debug().Where("ID = ?", ID).First(&user).Error
+	err := db.Session.Where("ID = ?", ID).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			slog.Info("User not found", "ID", ID)
@@ -48,7 +48,7 @@ func (db Database) UpdateUser(ID int, user entity.User) (entity.User, error) {
 	user.ID = uint(ID)
 
 	err := db.Session.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Debug().Save(&user).Error; err != nil {
+		if err := tx.Save(&user).Error; err != nil {
 			return fmt.Errorf("in Transaction: %w", err)
 		}
 		return nil
@@ -68,7 +68,7 @@ func (db Database) CreateUser(user entity.User) (entity.User, error) {
 	user.ID = uint(0)
 
 	err := db.Session.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Debug().Create(&user).Error; err != nil {
+		if err := tx.Create(&user).Error; err != nil {
 			return fmt.Errorf("in Transaction: %w", err)
 		}
 		return nil
@@ -84,7 +84,7 @@ func (db Database) CreateUser(user entity.User) (entity.User, error) {
 //
 // DELETE FROM "users" WHERE "users"."id" = $1
 func (db Database) DeleteUser(ID int) error {
-	if err := db.Session.Debug().Delete(&entity.User{}, ID).Error; err != nil {
+	if err := db.Session.Delete(&entity.User{}, ID).Error; err != nil {
 		return fmt.Errorf("in session.DeleteUser: %w", err)
 	}
 
