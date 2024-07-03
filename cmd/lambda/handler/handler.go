@@ -10,16 +10,7 @@ import (
 	"user-microservice/internal/database/entity"
 )
 
-type (
-	Request  = events.APIGatewayProxyRequest
-	Response = events.APIGatewayProxyResponse
-
-	APIGatewayHandler func(context.Context, Request) (Response, error)
-)
-
-type responseError struct {
-	Error string `json:"error"`
-}
+type APIGatewayHandler func(context.Context, events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error)
 
 type userService interface {
 	List() ([]entity.User, error)
@@ -42,13 +33,13 @@ func New(userService userService, logger *slog.Logger) Handler {
 }
 
 func Run(h Handler) APIGatewayHandler {
-	return func(ctx context.Context, request Request) (Response, error) {
+	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		switch request.HTTPMethod {
 		case http.MethodGet:
 			if request.PathParameters != nil {
 				return h.fetchUser(request)
 			}
-			return h.fetchUser(request)
+			return h.listUsers(request)
 
 		case http.MethodPut:
 			return h.updateUser(request)
@@ -60,7 +51,7 @@ func Run(h Handler) APIGatewayHandler {
 			return h.deleteUser(request)
 
 		default:
-			return Response{StatusCode: http.StatusMethodNotAllowed}, nil
+			return events.APIGatewayProxyResponse{StatusCode: http.StatusMethodNotAllowed}, nil
 		}
 	}
 }

@@ -32,7 +32,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			users, err := h.userService.List()
 			if err != nil {
 				h.logger.Error("error getting all locations", "error", err)
-				encode(
+				encodeResponse(
 					w,
 					http.StatusInternalServerError,
 					responseError{Error: "Error retrieving data"},
@@ -41,7 +41,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			}
 
 			// return response
-			encode(w, http.StatusOK, responseAllUsers{Users: users})
+			encodeResponse(w, http.StatusOK, responseAllUsers{Users: users})
 		})
 
 		// @Summary		Fetch a user by ID
@@ -60,7 +60,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			ID, err := strconv.Atoi(idString)
 			if err != nil {
 				h.logger.Error("error getting ID", "error", err)
-				encode(w, http.StatusBadRequest, responseError{Error: "Not a valid ID"})
+				encodeResponse(w, http.StatusBadRequest, responseError{Error: "Not a valid ID"})
 				return
 			}
 
@@ -68,7 +68,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			user, err := h.userService.Fetch(ID)
 			if err != nil {
 				h.logger.Error("error getting locations buy ID", "ID", ID, "error", err)
-				encode(
+				encodeResponse(
 					w,
 					http.StatusInternalServerError,
 					responseError{Error: "Error retrieving data"},
@@ -77,7 +77,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			}
 
 			// return response
-			encode(w, http.StatusOK, responseOneUser{User: user})
+			encodeResponse(w, http.StatusOK, responseOneUser{User: user})
 		})
 
 		// @Summary		Update a user by ID
@@ -97,15 +97,15 @@ func userRoutes(h Handler) func(r chi.Router) {
 			ID, err := strconv.Atoi(idString)
 			if err != nil {
 				h.logger.Error("error getting ID", "error", err)
-				encode(w, http.StatusBadRequest, responseError{Error: "Not a valid ID"})
+				encodeResponse(w, http.StatusBadRequest, responseError{Error: "Not a valid ID"})
 				return
 			}
 
 			// get and validate body as object
-			inputUser, err := decode[entity.User](r)
+			inputUser, err := decodeToStruct[entity.User](r)
 			if err != nil {
 				h.logger.Error("BodyParser error", "error", err)
-				encode(
+				encodeResponse(
 					w,
 					http.StatusBadRequest,
 					responseError{Error: "missing values or malformed body"},
@@ -117,7 +117,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			user, err := h.userService.Update(ID, inputUser)
 			if err != nil {
 				h.logger.Error("error updating object in db", "error", err)
-				encode(
+				encodeResponse(
 					w,
 					http.StatusInternalServerError,
 					responseError{Error: "Error updating data"},
@@ -126,7 +126,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			}
 
 			// return response
-			encode(w, http.StatusOK, responseOneUser{User: user})
+			encodeResponse(w, http.StatusOK, responseOneUser{User: user})
 		})
 
 		// @Summary		Create a user
@@ -142,10 +142,10 @@ func userRoutes(h Handler) func(r chi.Router) {
 		// @Router		/user		[POST]
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 			// get and validate body as object
-			inputUser, err := decode[entity.User](r)
+			inputUser, err := decodeToStruct[entity.User](r)
 			if err != nil {
 				h.logger.Error("BodyParser error", "error", err)
-				encode(
+				encodeResponse(
 					w,
 					http.StatusBadRequest,
 					responseError{Error: "missing values or malformed body"},
@@ -157,7 +157,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			id, err := h.userService.Create(inputUser)
 			if err != nil {
 				h.logger.Error("error creating object to db", "error", err)
-				encode(
+				encodeResponse(
 					w,
 					http.StatusInternalServerError,
 					responseError{Error: "Error creating object"},
@@ -166,7 +166,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			}
 
 			// return response
-			encode(w, http.StatusOK, responseID{ObjectID: id})
+			encodeResponse(w, http.StatusOK, responseID{ObjectID: id})
 		})
 
 		// @Summary		Delete a user by ID
@@ -185,7 +185,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			ID, err := strconv.Atoi(idString)
 			if err != nil {
 				h.logger.Error("error getting ID", "error", err)
-				encode(w, http.StatusBadRequest, responseError{Error: "Not a valid ID"})
+				encodeResponse(w, http.StatusBadRequest, responseError{Error: "Not a valid ID"})
 				return
 			}
 
@@ -193,7 +193,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			user, err := h.userService.Fetch(ID)
 			if err != nil {
 				h.logger.Error("error getting object by ID", "error", err)
-				encode(
+				encodeResponse(
 					w,
 					http.StatusInternalServerError,
 					responseError{Error: "Error validating object"},
@@ -201,14 +201,14 @@ func userRoutes(h Handler) func(r chi.Router) {
 				return
 			}
 			if user.ID == 0 {
-				encode(w, http.StatusBadRequest, responseError{Error: "Object does not exist"})
+				encodeResponse(w, http.StatusBadRequest, responseError{Error: "Object does not exist"})
 				return
 			}
 
 			// delete user
 			if err = h.userService.Delete(ID); err != nil {
 				h.logger.Error("error deleting object by ID", "ID", ID, "error", err)
-				encode(
+				encodeResponse(
 					w,
 					http.StatusInternalServerError,
 					responseError{Error: "Error deleting object."},
@@ -217,7 +217,7 @@ func userRoutes(h Handler) func(r chi.Router) {
 			}
 
 			// return message
-			encode(w, http.StatusOK, responseMessage{Message: "object successful deleted"})
+			encodeResponse(w, http.StatusOK, responseMessage{Message: "object successful deleted"})
 		})
 	}
 }

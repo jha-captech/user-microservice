@@ -17,7 +17,7 @@ func healthCheck(h Handler) func(r chi.Router) {
 		// @Router		/health-check 	[GET]
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			h.logger.Info("Health check called")
-			encode(w, http.StatusOK, responseMessage{Message: "Hello World"})
+			encodeResponse(w, http.StatusOK, responseMessage{Message: "Hello World"})
 		})
 	}
 }
@@ -32,6 +32,6 @@ func healthCheck(h Handler) func(r chi.Router) {
 func handleHealthCheck(h Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		h.logger.Info("Health check v2 called")
-		encode(w, http.StatusOK, responseMessage{Message: "Hello World"})
+		encodeResponse(w, http.StatusOK, responseMessage{Message: "Hello World"})
 	}
 }

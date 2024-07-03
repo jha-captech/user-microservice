@@ -17,7 +17,14 @@ make up
 make down
 ```
 
-## App: Gin
+## App: Web API
+
+### Start Dev
+```cmd
+make http_dev
+```
+
+## App: Lambda
 
 ### Start Dev
 ```cmd
