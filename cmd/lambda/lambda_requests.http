@@ -1,0 +1,31 @@
+### list users
+GET http://127.0.0.1:8080/user
+
+### fetch user by id
+GET http://127.0.0.1:8080/user/1
+
+### Update a user by ID
+PUT http://127.0.0.1:8080/user/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "first_name": "JohnNew",
+  "last_name": "Doe",
+  "role": "Customer",
+  "user_id": 1001
+}
+
+### Create a user
+POST http://127.0.0.1:8080/user
+Content-Type: application/json
+
+{
+  "first_name": "John",
+  "last_name": "DoeNewNew",
+  "role": "Customer",
+  "user_id": 1012
+}
+
+### Delete a user by ID
+DELETE http://127.0.0.1:8080/user/11

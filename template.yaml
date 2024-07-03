@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  UserMicroservice
+
+  Sample API using AWS Lambda. Provides CRUD functionality for a user microservice. 
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+
+    # You can add LoggingConfig parameters such as the Logformat, Log Group, and SystemLogLevel or ApplicationLogLevel. Learn more here https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-loggingconfig.
+    LoggingConfig:
+      LogFormat: JSON
+Resources:
+  UserMicroservice:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: cmd/lambda/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+      - x86_64
+      Environment:
+        Variables:
+          ENV: !Ref ENV
+          DATABASE_CONTAINER_NAME: !Ref DATABASE_CONTAINER_NAME
+          DATABASE_NAME: !Ref DATABASE_NAME
+          DATABASE_USER: !Ref DATABASE_USER
+          DATABASE_PASSWORD: !Ref DATABASE_PASSWORD
+          DATABASE_HOST: !Ref DATABASE_HOST
+          DATABASE_PORT: !Ref DATABASE_PORT
+          DATABASE_CONNECTION_RETRY: !Ref DATABASE_CONNECTION_RETRY
+      Events:
+        ListUser:
+          Type: Api
+          Properties:
+            Path: /user
+            Method: GET
+        FetchUser:
+          Type: Api
+          Properties:
+            Path: /user/{ID}
+            Method: GET
+        UpdateUser:
+          Type: Api
+          Properties:
+            Path: /user/{ID}
+            Method: PUT
+        CreateUser:
+          Type: Api
+          Properties:
+            Path: /user
+            Method: POST
+        DeleteUser:
+          Type: Api
+          Properties:
+            Path: /user/{ID}
+            Method: DELETE
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  HelloWorldAPI:
+    Description: API Gateway endpoint URL for Prod environment for First Function
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+  HelloWorldFunction:
+    Description: First Lambda Function ARN
+    Value: !GetAtt HelloWorldFunction.Arn
+  HelloWorldFunctionIamRole:
+    Description: Implicit IAM Role created for Hello World function
+    Value: !GetAtt HelloWorldFunctionRole.Arn
