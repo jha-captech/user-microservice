@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -14,17 +15,17 @@ import (
 type configuration struct {
 	Env      string `env:"ENV"`
 	Database struct {
-		Name            string `env:"DATABASE_NAME"`
-		User            string `env:"DATABASE_USER"`
-		Password        string `env:"DATABASE_PASSWORD"`
-		Host            string `env:"DATABASE_HOST"`
-		Port            string `env:"DATABASE_PORT"`
-		ConnectionRetry int    `env:"DATABASE_CONNECTION_RETRY"`
+		Name            string `env:"DATABASE_NAME,required"`
+		User            string `env:"DATABASE_USER,required"`
+		Password        string `env:"DATABASE_PASSWORD,required"`
+		Host            string `env:"DATABASE_HOST,required"`
+		Port            string `env:"DATABASE_PORT,required"`
+		ConnectionRetry int    `env:"DATABASE_CONNECTION_RETRY,required"`
 	}
 	HTTP struct {
-		Domain              string `env:"HTTP_DOMAIN"`
-		Port                string `env:"HTTP_PORT"`
-		ShutdownGracePeriod int    `env:"HTTP_SHUTDOWN_GRACE_PERIOD"`
+		Domain              string `env:"HTTP_DOMAIN,required"`
+		Port                string `env:"HTTP_PORT,required"`
+		ShutdownGracePeriod int    `env:"HTTP_SHUTDOWN_GRACE_PERIOD,required"`
 	}
 }
 
@@ -33,7 +34,7 @@ func mustNewConfiguration() configuration {
 	loadEnv()
 
 	config := configuration{}
-	if err := ParseStructFromEnv(&config, true); err != nil {
+	if err := ParseStructFromEnv(&config); err != nil {
 		panic(fmt.Sprintf("Error unmarshaling ENV vars: %v", err))
 	}
 
@@ -56,12 +57,7 @@ func loadEnv() {
 //
 // If the `errOnMissingValue` flag is set to `true`, any tag that is missing an environment variable
 // will result in an error being returned.
-func ParseStructFromEnv(obj any, errOnMissingValue bool) (err error) {
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("in ParseStructFromEnv: %w", err)
-		}
-	}()
+func ParseStructFromEnv(obj any) error {
 	val := reflect.ValueOf(obj)
 
 	// if pointer, get value
@@ -75,36 +71,49 @@ func ParseStructFromEnv(obj any, errOnMissingValue bool) (err error) {
 
 		// Check if the field is a struct
 		if field.Kind() == reflect.Struct {
-			if err := ParseStructFromEnv(field.Addr().Interface(), errOnMissingValue); err != nil {
-				return err
+			if err := ParseStructFromEnv(field.Addr().Interface()); err != nil {
+				return fmt.Errorf("in ParseStructFromEnv: %w", err)
 			}
 			continue
 		}
 
 		// Get and then set env value based on tag if present
 		fieldType := val.Type().Field(i)
-		envTag := fieldType.Tag.Get("env")
+		tagsString := fieldType.Tag.Get("env")
 
-		if field.CanSet() && envTag != "" {
+		if field.CanSet() && tagsString != "" {
+			tags := strings.Split(tagsString, ",")
+			fmt.Printf("%#v\n", tags)
+			key := tags[0]
+			required := false
+			if len(tags) >= 2 && tags[1] == "required" {
+				required = true
+			}
+			envValue := os.Getenv(key)
+
+			// An empty string will always be an issue if `required` is set.
+			if required && envValue == "" {
+				return newEnvVarMissingErr(key)
+			}
+
 			switch field.Kind() {
 			case reflect.String:
-				value, err := getEnvString(envTag, errOnMissingValue)
-				if err != nil {
-					return err
-				}
-				field.SetString(value)
+				field.SetString(envValue)
+
 			case reflect.Int:
-				value, err := getEnvInt64(envTag, errOnMissingValue)
-				if err != nil {
-					return err
+				convertedInt, err := strconv.Atoi(envValue)
+				if err != nil && required {
+					return newEnvVarParsingErr(key, err)
 				}
-				field.SetInt(value)
+				field.SetInt(int64(convertedInt))
+
 			case reflect.Bool:
-				value, err := getEnvBool(envTag, errOnMissingValue)
-				if err != nil {
-					return err
+				value, err := strconv.ParseBool(envValue)
+				if err != nil && required {
+					return newEnvVarParsingErr(key, err)
 				}
 				field.SetBool(value)
+
 			default:
 				continue
 			}
@@ -113,65 +122,12 @@ func ParseStructFromEnv(obj any, errOnMissingValue bool) (err error) {
 	return nil
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────────────────────────
-
-func newEnvVarMissingErr[T any](key string) (T, error) {
-	var blank T
+func newEnvVarMissingErr(key string) error {
 	errMsg := fmt.Sprintf("enviroment variable '%s' is missing or blank", key)
-	return blank, errors.New(errMsg)
+	return errors.New(errMsg)
 }
 
-func newEnvVarParsingErr[T any](key string, err error) (T, error) {
-	var blank T
-	errMsg := fmt.Sprintf(
-		"error parsing enviroment variable '%s' to type '%T': %v",
-		key,
-		blank,
-		err,
-	)
-	return blank, errors.New(errMsg)
-}
-
-func getEnvString(key string, errIfMissing bool) (string, error) {
-	value := os.Getenv(key)
-	if errIfMissing && value == "" {
-		return newEnvVarMissingErr[string](key)
-	}
-	return value, nil
-}
-
-func getEnvInt64(key string, errIfMissing bool) (int64, error) {
-	value := os.Getenv(key)
-	if errIfMissing && value == "" {
-		return newEnvVarMissingErr[int64](key)
-	}
-	convertedInt, err := strconv.Atoi(value)
-	if err != nil {
-		return newEnvVarParsingErr[int64](key, err)
-	}
-	return int64(convertedInt), nil
-}
-
-func getEnvBool(key string, errIfMissing bool) (bool, error) {
-	value := os.Getenv(key)
-	if errIfMissing && value == "" {
-		return newEnvVarMissingErr[bool](key)
-	}
-	convertedBool, err := strconv.ParseBool(value)
-	if err != nil {
-		return newEnvVarParsingErr[bool](key, err)
-	}
-	return convertedBool, nil
-}
-
-func getEnvFloat64(key string, errIfMissing bool) (float64, error) {
-	value := os.Getenv(key)
-	if errIfMissing && value == "" {
-		return newEnvVarMissingErr[float64](key)
-	}
-	convertedFloat, err := strconv.ParseFloat(value, 64)
-	if err != nil {
-		return newEnvVarParsingErr[float64](key, err)
-	}
-	return convertedFloat, nil
+func newEnvVarParsingErr(key string, err error) error {
+	errMsg := fmt.Sprintf("error parsing enviroment variable '%s': %v", key, err)
+	return errors.New(errMsg)
 }
