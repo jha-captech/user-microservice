@@ -23,13 +23,11 @@ func mustNewDatabase(connectionString string, logger *slog.Logger, retryCount in
 		return sql.Open("postgres", connectionString)
 	})
 	if err != nil {
-		panic(
-			fmt.Sprintf(
-				"Failed to connect to database after %d attempts. sql.Open: %v",
-				retryCount,
-				err,
-			),
-		)
+		panic(fmt.Sprintf(
+			"Failed to connect to database after %d attempts. sql.Open: %v",
+			retryCount,
+			err,
+		))
 	}
 
 	logger.Info("Attempting to ping database")
@@ -38,13 +36,11 @@ func mustNewDatabase(connectionString string, logger *slog.Logger, retryCount in
 	})
 	if err != nil {
 		db.Close()
-		panic(
-			fmt.Sprintf(
-				"Failed to ping database after %d attempts. db.Ping(): %v",
-				retryCount,
-				err,
-			),
-		)
+		panic(fmt.Sprintf(
+			"Failed to ping database after %d attempts. db.Ping(): %v",
+			retryCount,
+			err,
+		))
 	}
 
 	logger.Info("database connection established")

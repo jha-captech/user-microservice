@@ -9,9 +9,13 @@ This project is designed to demonstrate alternative structures for a basic micro
 This is the original project and it used `cmd` for entry points and `internal` for internal packages. It also has both a lambda and a chi API entrypoint.
 
 #### Pros
-- stuff
+- Well organized. 
+- `cmd` is a good way to facilitate multiple entrypoint for the app. 
+- 
 #### Cons
-- stuff
+- It is more complex and can be hard to follow the flow of the application.
+- combining both and API and a Lambda into the same project means that there is probably more code in `cmd` than there really should be.
+- Due to the fact that the app is composed of multiple packages, there are abstractions between lairs which can be both a good and bad thing. 
 
 File layout:
 ```text
@@ -50,7 +54,7 @@ original
 │   │   └── users_test.go
 │   └── user
 │       ├── mock
-│       │   └── databasesession.go
+│       │   └── database.go
 │       ├── user.go
 │       └── user_test.go
 ├── README.MD
@@ -68,3 +72,46 @@ original
 TODOS:
 - [ ] move all mocks out of test files and into `mock` packages.
 - [ ] add lambda tests
+- [ ] finish adding swagger support with `swaggo`
+
+---
+
+### [Flat](./flat)
+This is a simplified version of the original project that uses a flat project structure. This version also uses all standard library packages, with the exception of the Postgres database driver
+
+#### Pros
+- Very fast to get up and running.
+- Simple to understand where everything is. 
+- No need to manage imports from other packages.
+- Using all standard library packages is pretty powerful. 
+  - Using `database/sql` instead of an ORM like `GORM` is actually pretty nice as you can see exactly what is going on with your SQL queries.
+  - `net/http` is more than enough for most basic things. `net/http` handlers are also compatible with routing libraries like `go-chi/chi`.
+#### Cons
+- It can get a little crowded with all the files in the root of the project.
+- Not practical for a large project or a project with more than a couple of devs. 
+- Lack of abstractions may cause issues later on. 
+
+File layout:
+```text
+flat
+├── Dockerfile
+├── README.MD
+├── config.go
+├── database.go
+├── docker-compose.yml
+├── encode_decode.go
+├── go.mod
+├── go.sum
+├── handlers.go
+├── main.go
+├── makefile
+├── middleware.go
+├── models.go
+├── postgres_setup.sql
+├── requests.http
+├── routes.go
+└── users.go
+```
+
+TODOS:
+- [ ] add tests
