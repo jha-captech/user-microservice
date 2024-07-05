@@ -19,14 +19,22 @@ make down
 
 ## App: Web API
 
-### Start Dev
+### Dev
+API running locally.
+#### Start
 ```cmd
 make http_dev
 ```
 
-## App: Lambda
+### Dev - Docker
+API and DB running in docker.
 
-### Start Dev
+#### Up
 ```cmd
-make http_dev
+make app_up
+```
+
+#### Down
+```cmd
+make app_down
 ```

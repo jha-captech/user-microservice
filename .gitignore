@@ -22,13 +22,13 @@ go.work
 go.work.sum
 
 # env file
-.env
+original/.env
 
 
-vendor/*
-!vendor/.gitkeep
+original/vendor/*
+!original/vendor/.gitkeep
 
-/.env
+/original/.env
 /.idea/
-/.aws-sam/
-/env.json
+/original/.aws-sam/
+/original/env.json
