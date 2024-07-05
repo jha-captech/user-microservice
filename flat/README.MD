@@ -1,5 +1,7 @@
 # user-microservice
 
+---
+
 ## Database: PostgresSQL In Docker
 
 ### Setup And Seed Database
@@ -17,11 +19,15 @@ make up
 make down
 ```
 
+---
+
 ## App: Web API
 
 ### Dev
+
 API running locally.
-#### Start[README.md](..%2FREADME.md)
+
+#### Start
 ```cmd
 make http_dev
 ```
@@ -33,7 +39,7 @@ API and DB running in docker.
 ```cmd
 make app_up
 ```
-[README.md](..%2FREADME.md)
+
 #### Down
 ```cmd
 make app_down
