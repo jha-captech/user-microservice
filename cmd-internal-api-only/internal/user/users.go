@@ -1,25 +1,28 @@
-package main
+package user
 
 import (
 	"database/sql"
 	"errors"
 	"fmt"
+
+	"github.com/jha-captech/user-microservice/internal/database"
+	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type UserService struct {
-	DB Database
+type Service struct {
+	Database database.Database
 }
 
-// NewUserService returns a new UserService struct.
-func NewUserService(db Database) UserService {
-	return UserService{
-		DB: db,
+// NewService returns a new Service struct.
+func NewService(db database.Database) Service {
+	return Service{
+		Database: db,
 	}
 }
 
 // ListUsers returns a list of all User objects from the Database.
-func (us UserService) ListUsers() ([]User, error) {
-	rows, err := us.DB.Session.Query(
+func (s Service) ListUsers() ([]models.User, error) {
+	rows, err := s.Database.Session.Query(
 		`
 		SELECT 
 		    * 
@@ -28,31 +31,31 @@ func (us UserService) ListUsers() ([]User, error) {
 		`,
 	)
 	if err != nil {
-		return []User{}, fmt.Errorf("in ListUsers:, %w", err)
+		return []models.User{}, fmt.Errorf("in ListUsers:, %w", err)
 	}
 	defer rows.Close()
 
-	var users []User
+	var users []models.User
 	for rows.Next() {
-		var user User
+		var user models.User
 		err = rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Role, &user.UserID)
 		if err != nil {
-			return []User{}, fmt.Errorf("in ListUsers:, %w", err)
+			return []models.User{}, fmt.Errorf("in ListUsers:, %w", err)
 		}
 		users = append(users, user)
 	}
 
 	if err = rows.Err(); err != nil {
-		return []User{}, fmt.Errorf("in ListUsers:, %w", err)
+		return []models.User{}, fmt.Errorf("in ListUsers:, %w", err)
 	}
 
 	return users, nil
 }
 
 // FetchUser returns am User objects from the Database by ID.
-func (us UserService) FetchUser(ID int) (User, error) {
-	var user User
-	err := us.DB.Session.
+func (s Service) FetchUser(ID int) (models.User, error) {
+	var user models.User
+	err := s.Database.Session.
 		QueryRow(
 			`
 			SELECT
@@ -70,17 +73,17 @@ func (us UserService) FetchUser(ID int) (User, error) {
 		Scan(&user.ID, &user.FirstName, &user.LastName, &user.Role, &user.UserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return User{}, nil
+			return models.User{}, nil
 		}
-		return User{}, fmt.Errorf("in ListUsers:, %w", err)
+		return models.User{}, fmt.Errorf("in ListUsers:, %w", err)
 	}
 
 	return user, nil
 }
 
 // UpdateUser updates am User objects from the Database by ID.
-func (us UserService) UpdateUser(ID int, user User) (User, error) {
-	_, err := us.DB.Session.Exec(
+func (s Service) UpdateUser(ID int, user models.User) (models.User, error) {
+	_, err := s.Database.Session.Exec(
 		`
 		UPDATE
 			"users"
@@ -99,7 +102,7 @@ func (us UserService) UpdateUser(ID int, user User) (User, error) {
 		ID,
 	)
 	if err != nil {
-		return User{}, fmt.Errorf("in UpdateUser: %w", err)
+		return models.User{}, fmt.Errorf("in UpdateUser: %w", err)
 	}
 
 	user.ID = uint(ID)
@@ -107,9 +110,9 @@ func (us UserService) UpdateUser(ID int, user User) (User, error) {
 }
 
 // CreateUser creates am User objects in the Database.
-func (us UserService) CreateUser(user User) (int, error) {
+func (s Service) CreateUser(user models.User) (int, error) {
 	var ID int
-	err := us.DB.Session.QueryRow(
+	err := s.Database.Session.QueryRow(
 		`
 		INSERT INTO "users" ("first_name", "last_name", "role", "user_id")
 			VALUES ($1, $2, $3, $4)
@@ -128,8 +131,8 @@ func (us UserService) CreateUser(user User) (int, error) {
 }
 
 // DeleteUser deletes am User objects from the Database by ID.
-func (us UserService) DeleteUser(ID int) error {
-	_, err := us.DB.Session.Exec(
+func (s Service) DeleteUser(ID int) error {
+	_, err := s.Database.Session.Exec(
 		`
 		DELETE FROM "users"
 		WHERE "users"."id" = $1

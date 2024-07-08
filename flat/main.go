@@ -19,11 +19,11 @@ func main() {
 
 func run() {
 	// Setup
-	config := mustNewConfiguration()
+	config := MustNewConfiguration()
 
 	logger := slog.Default()
 
-	db := mustNewDatabase(
+	db := MustNewDatabase(
 		fmt.Sprintf(
 			"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 			config.Database.Host,
@@ -35,24 +35,24 @@ func run() {
 		logger,
 		config.Database.ConnectionRetry,
 	)
-	defer db.session.Close()
+	defer db.Session.Close()
 
-	us := newUserService(db)
+	us := NewUserService(db)
 
 	h := newHandler(logger, us)
 
 	mux := http.NewServeMux()
 
-	stack := createMiddlewareStack(
-		corsMiddleware(corsOptions{
+	stack := CreateStack(
+		CORSMiddleware(CORSOptions{
 			allowedOrigins: []string{"*"},
 			allowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		}),
-		loggerMiddleware(logger),
-		recoveryMiddleware(logger),
+		LoggerMiddleware(logger),
+		RecoveryMiddleware(logger),
 	)
 
-	registerRoutes(mux, h)
+	RegisterRoutes(mux, h)
 
 	server := &http.Server{
 		Addr:    config.HTTP.Domain + config.HTTP.Port,

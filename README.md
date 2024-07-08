@@ -115,3 +115,52 @@ flat
 
 TODOS:
 - [ ] add tests
+
+---
+
+### [`cmd` and `internal` folders - API only](./cmd-internal-api-only)
+This is a reorganized version of the flat project structure optimized for a multi person team. As such, it utilizes an entrypoint in `cmd` and logic is defined in packages inside of `internal`. 
+
+#### Pros
+- Structure facilitates multiple team members working on the project at once.
+#### Cons
+- Not as simple as the flat structure and requires packages to be imported from across the package.
+
+File layout:
+```text
+cmd-internal-api-only
+├── cmd
+│   └── api
+│       └── main.go
+├── internal
+│   ├── config
+│   │   └── config.go
+│   ├── database
+│   │   └── database.go
+│   ├── middleware
+│   │   ├── cors.go
+│   │   ├── logger.go
+│   │   ├── middleware.go
+│   │   └── recovery.go
+│   ├── models
+│   │   └── models.go
+│   ├── server
+│   │   ├── encode_decode.go
+│   │   ├── handlers.go
+│   │   ├── health_handlers.go
+│   │   ├── routes.go
+│   │   └── user_handlers.go
+│   └── user
+│       └── users.go
+├── Dockerfile
+├── README.MD
+├── docker-compose.yml
+├── go.mod
+├── go.sum
+├── makefile
+├── postgres_setup.sql
+└── requests.http
+```
+
+TODOS:
+- [ ] add tests

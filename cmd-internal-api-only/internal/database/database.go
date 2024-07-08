@@ -1,4 +1,4 @@
-package main
+package database
 
 import (
 	"database/sql"
@@ -36,7 +36,7 @@ func MustNewDatabase(connectionString string, logger *slog.Logger, retryCount in
 	if err != nil {
 		db.Close()
 		panic(fmt.Sprintf(
-			"Failed to ping Database after %d attempts. DB.Ping(): %v",
+			"Failed to ping Database after %d attempts. Database.Ping(): %v",
 			retryCount,
 			err,
 		))

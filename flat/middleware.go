@@ -10,9 +10,9 @@ import (
 
 // ── Middleware Setup ─────────────────────────────────────────────────────────────────────────────
 
-type middleware func(http.Handler) http.Handler
+type Middleware func(http.Handler) http.Handler
 
-func createMiddlewareStack(fn ...middleware) middleware {
+func CreateStack(fn ...Middleware) Middleware {
 	return func(next http.Handler) http.Handler {
 		for i := len(fn) - 1; i >= 0; i-- {
 			x := fn[i]
@@ -34,7 +34,7 @@ func (w *wrappedWriter) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 }
 
-func loggerMiddleware(logger *slog.Logger) middleware {
+func LoggerMiddleware(logger *slog.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -65,7 +65,7 @@ func loggerMiddleware(logger *slog.Logger) middleware {
 
 // ── Recovery ─────────────────────────────────────────────────────────────────────────────────────
 
-func recoveryMiddleware(logger *slog.Logger) middleware {
+func RecoveryMiddleware(logger *slog.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
@@ -91,13 +91,14 @@ func recoveryMiddleware(logger *slog.Logger) middleware {
 }
 
 // ── CORS ─────────────────────────────────────────────────────────────────────────────────────────
-type corsOptions struct {
+
+type CORSOptions struct {
 	allowedOrigins []string
 	allowedMethods []string
 	allowedHeaders []string
 }
 
-func corsMiddleware(opts corsOptions) middleware {
+func CORSMiddleware(opts CORSOptions) Middleware {
 	// set defaults if not set
 	if opts.allowedOrigins == nil {
 		opts.allowedOrigins = []string{"*"}

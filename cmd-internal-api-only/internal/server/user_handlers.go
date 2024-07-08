@@ -1,42 +1,18 @@
-package main
+package server
 
 import (
-	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-// ── Handler Struct And Constructor ───────────────────────────────────────────────────────────────
-
-type handler struct {
-	logger  *slog.Logger
-	service UserService
-}
-
-func newHandler(logger *slog.Logger, us UserService) handler {
-	return handler{
-		logger:  logger,
-		service: us,
-	}
-}
-
-// ── Healthcheck Handler ──────────────────────────────────────────────────────────────────────────
-
-func (h *handler) handleHealthCheck() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		h.logger.Info("Health check called")
-		encodeResponse(w, http.StatusOK, map[string]string{"message": "hello world"})
-	}
-}
-
-// ── User Handlers ────────────────────────────────────────────────────────────────────────────────
-
 type responseOneUser struct {
-	User User `json:"user"`
+	User models.User `json:"user"`
 }
 
 type responseAllUsers struct {
-	Users []User `json:"users"`
+	Users []models.User `json:"users"`
 }
 
 type responseMessage struct {
@@ -51,11 +27,11 @@ type responseError struct {
 	Error string `json:"error"`
 }
 
-// handleListUsers is a handler that returns a list of all users.
-func (h *handler) handleListUsers() http.HandlerFunc {
+// handleListUsers is a Handler that returns a list of all users.
+func (h *Handler) handleListUsers() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// get values from DB
-		users, err := h.service.ListUsers()
+		// get values from Database
+		users, err := h.userService.ListUsers()
 		if err != nil {
 			h.logger.Error("error getting all locations", "error", err)
 			encodeResponse(
@@ -71,8 +47,8 @@ func (h *handler) handleListUsers() http.HandlerFunc {
 	}
 }
 
-// handleFetchUser is a handler that returns a single user by ID.
-func (h *handler) handleFetchUser() http.HandlerFunc {
+// handleFetchUser is a Handler that returns a single user by ID.
+func (h *Handler) handleFetchUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate ID
 		idString := r.PathValue("id")
@@ -83,8 +59,8 @@ func (h *handler) handleFetchUser() http.HandlerFunc {
 			return
 		}
 
-		// get values from DB
-		user, err := h.service.FetchUser(ID)
+		// get values from Database
+		user, err := h.userService.FetchUser(ID)
 		if err != nil {
 			h.logger.Error("error getting locations buy ID", "ID", ID, "error", err)
 			encodeResponse(
@@ -100,8 +76,8 @@ func (h *handler) handleFetchUser() http.HandlerFunc {
 	}
 }
 
-// handleUpdateUser is a handler that updates a user based on a user object from the request body.
-func (h *handler) handleUpdateUser() http.HandlerFunc {
+// handleUpdateUser is a Handler that updates a user based on a user object from the request body.
+func (h *Handler) handleUpdateUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate ID
 		idString := r.PathValue("id")
@@ -113,7 +89,7 @@ func (h *handler) handleUpdateUser() http.HandlerFunc {
 		}
 
 		// get and validate body as object
-		inputUser, err := decodeToStruct[User](r)
+		inputUser, err := decodeToStruct[models.User](r)
 		if err != nil {
 			h.logger.Error("BodyParser error", "error", err)
 			encodeResponse(
@@ -125,9 +101,9 @@ func (h *handler) handleUpdateUser() http.HandlerFunc {
 		}
 
 		// update object in Database
-		user, err := h.service.UpdateUser(ID, inputUser)
+		user, err := h.userService.UpdateUser(ID, inputUser)
 		if err != nil {
-			h.logger.Error("error updating object in DB", "error", err)
+			h.logger.Error("error updating object in Database", "error", err)
 			encodeResponse(
 				w,
 				http.StatusInternalServerError,
@@ -141,11 +117,11 @@ func (h *handler) handleUpdateUser() http.HandlerFunc {
 	}
 }
 
-// handleUpdateUser is a handler that creates a user based on a user object from the request body.
-func (h *handler) handleCreateUser() http.HandlerFunc {
+// handleUpdateUser is a Handler that creates a user based on a user object from the request body.
+func (h *Handler) handleCreateUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate body as object
-		inputUser, err := decodeToStruct[User](r)
+		inputUser, err := decodeToStruct[models.User](r)
 		if err != nil {
 			h.logger.Error("BodyParser error", "error", err)
 			encodeResponse(
@@ -157,9 +133,9 @@ func (h *handler) handleCreateUser() http.HandlerFunc {
 		}
 
 		// create object in Database
-		ID, err := h.service.CreateUser(inputUser)
+		ID, err := h.userService.CreateUser(inputUser)
 		if err != nil {
-			h.logger.Error("error creating object to DB", "error", err)
+			h.logger.Error("error creating object to Database", "error", err)
 			encodeResponse(
 				w,
 				http.StatusInternalServerError,
@@ -173,8 +149,8 @@ func (h *handler) handleCreateUser() http.HandlerFunc {
 	}
 }
 
-// handleUpdateUser is a handler that deletes a user based on an ID.
-func (h *handler) handleDeleteUser() http.HandlerFunc {
+// handleUpdateUser is a Handler that deletes a user based on an ID.
+func (h *Handler) handleDeleteUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate ID
 		idString := r.PathValue("id")
@@ -186,7 +162,7 @@ func (h *handler) handleDeleteUser() http.HandlerFunc {
 		}
 
 		// check that object exists
-		user, err := h.service.FetchUser(ID)
+		user, err := h.userService.FetchUser(ID)
 		if err != nil {
 			h.logger.Error("error getting object by ID", "error", err)
 			encodeResponse(
@@ -202,7 +178,7 @@ func (h *handler) handleDeleteUser() http.HandlerFunc {
 		}
 
 		// delete user
-		if err = h.service.DeleteUser(ID); err != nil {
+		if err = h.userService.DeleteUser(ID); err != nil {
 			h.logger.Error("error deleting object by ID", "ID", ID, "error", err)
 			encodeResponse(
 				w,

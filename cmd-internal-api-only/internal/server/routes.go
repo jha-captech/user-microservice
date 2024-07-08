@@ -1,8 +1,10 @@
-package main
+package server
 
-import "net/http"
+import (
+	"net/http"
+)
 
-func RegisterRoutes(mux *http.ServeMux, h handler) {
+func RegisterRoutes(mux *http.ServeMux, h Handler) {
 	mux.HandleFunc("GET /api/health-check", h.handleHealthCheck())
 	mux.HandleFunc("GET /api/user", h.handleListUsers())
 	mux.HandleFunc("GET /api/user/{id}", h.handleFetchUser())
