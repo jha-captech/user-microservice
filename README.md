@@ -164,3 +164,59 @@ cmd-internal-api-only
 
 TODOS:
 - [ ] add tests
+
+---
+
+### [`cmd` and `internal` folders - API and Lambda](./cmd-internal-api-and-lambda)
+An alternate version of "`cmd` and `internal` folders - API only" that also adds a lambda that uses a revers proxy with existing API handlers.
+
+#### Pros
+- It has lambdas
+#### Cons
+- All endpoints are in a single lambda so there is some tighter coupling than might be desired. 
+
+File layout:
+```text
+cmd-internal-api-and-lambda
+├── cmd
+│   ├── api
+│   │   └── main.go
+│   └── lambda
+│       └── main.go
+├── internal
+│   ├── config
+│   │   └── config.go
+│   ├── database
+│   │   └── database.go
+│   ├── middleware
+│   │   ├── cors.go
+│   │   ├── logger.go
+│   │   ├── middleware.go
+│   │   └── recovery.go
+│   ├── models
+│   │   └── models.go
+│   ├── server
+│   │   ├── encode_decode.go
+│   │   ├── handlers.go
+│   │   ├── health_handlers.go
+│   │   ├── routes.go
+│   │   └── user_handlers.go
+│   └── user
+│       └── users.go
+├── Dockerfile
+├── README.MD
+├── docker-compose.yml
+├── env.json
+├── env.sample.json
+├── go.mod
+├── go.sum
+├── makefile
+├── postgres_setup.sql
+├── requests.api.http
+├── requests.lambda.http
+├── samconfig.toml
+└── template.yaml
+```
+
+TODOS:
+- [ ] add tests
