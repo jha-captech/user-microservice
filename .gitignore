@@ -31,4 +31,6 @@ original/vendor/*
 /original/.env
 /.idea/
 /original/.aws-sam/
-/original/env.json
+
+**/env.json
+**/.env
