@@ -22,15 +22,14 @@ go.work
 go.work.sum
 
 # env file
-original/.env
-
-
-original/vendor/*
-!original/vendor/.gitkeep
-
-/original/.env
-/.idea/
-/original/.aws-sam/
-
 **/env.json
 **/.env
+
+# jetbrains
+**/.idea/
+
+# aws
+**/.aws-sam/
+
+# builds
+**/bootstrap
