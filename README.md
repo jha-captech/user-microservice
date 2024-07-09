@@ -220,3 +220,59 @@ cmd-internal-api-and-lambda
 
 TODOS:
 - [ ] add tests
+
+---
+
+### [`cmd` and `internal` folders - Lambda Only](./cmd-internal-lambda-only)
+An alternate version of "`cmd` and `internal` folders - API only" that also only has lambdas and no API. Each lambda represents a single endpoint.
+
+#### Pros
+- It has lambdas and each lambda represents a single endpoint, allowing for each endpoint to be scaled interdependently of each other.
+#### Cons
+- Multiple lambdas meaning each endpoint is deployed seperated.
+
+File layout:
+```text
+cmd-internal-lambda-only
+├── cmd
+│   └── lambda
+│       ├── create
+│       │   └── main.go
+│       ├── delete
+│       │   └── main.go
+│       ├── fetch
+│       │   └── main.go
+│       ├── list
+│       │   └── main.go
+│       └── update
+│           └── main.go
+├── internal
+│   ├── config
+│   │   └── config.go
+│   ├── database
+│   │   └── database.go
+│   ├── handler
+│   │   ├── handler.go
+│   │   ├── response.go
+│   │   └── user.go
+│   ├── models
+│   │   └── models.go
+│   └── user
+│       └── users.go
+├── Dockerfile
+├── README.MD
+├── docker-compose.yml
+├── env.json
+├── env.sample.json
+├── go.mod
+├── go.sum
+├── makefile
+├── postgres_setup.sql
+├── requests.lambda.http
+├── samconfig.toml
+└── template.yamll
+└── template.yaml
+```
+
+TODOS:
+- [ ] add tests
