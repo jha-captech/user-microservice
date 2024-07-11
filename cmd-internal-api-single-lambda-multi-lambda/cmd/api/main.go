@@ -12,31 +12,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/caarlos0/env/v11"
 	"github.com/go-chi/chi/v5"
+	"github.com/jha-captech/user-microservice/internal/config"
 	"github.com/jha-captech/user-microservice/internal/database"
 	"github.com/jha-captech/user-microservice/internal/handlers"
 	"github.com/jha-captech/user-microservice/internal/middleware"
 	"github.com/jha-captech/user-microservice/internal/routes"
 	"github.com/jha-captech/user-microservice/internal/user"
 )
-
-type configuration struct {
-	Env      string `env:"ENV"`
-	Database struct {
-		Name            string `env:"DATABASE_NAME,required"`
-		User            string `env:"DATABASE_USER,required"`
-		Password        string `env:"DATABASE_PASSWORD,required"`
-		Host            string `env:"DATABASE_HOST,required"`
-		Port            string `env:"DATABASE_PORT,required"`
-		ConnectionRetry int    `env:"DATABASE_CONNECTION_RETRY,required"`
-	}
-	HTTP struct {
-		Domain              string `env:"HTTP_DOMAIN,required"`
-		Port                string `env:"HTTP_PORT,required"`
-		ShutdownGracePeriod int    `env:"HTTP_SHUTDOWN_GRACE_PERIOD,required"`
-	}
-}
 
 func main() {
 	if err := run(); err != nil {
@@ -46,8 +29,8 @@ func main() {
 
 func run() error {
 	// Setup
-	cfg := configuration{}
-	if err := env.Parse(&cfg); err != nil {
+	cfg, err := config.New()
+	if err != nil {
 		return fmt.Errorf("[in run]: %w", err)
 	}
 
