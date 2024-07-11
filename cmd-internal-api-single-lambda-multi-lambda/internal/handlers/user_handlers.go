@@ -70,14 +70,13 @@ func (h *Handler) HandleFetchUser() http.HandlerFunc {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):
 				encodeResponse(w, http.StatusOK, responseOneUser{})
-				return
 			default:
 				h.logger.Error("error getting object by ID", "error", err)
 				encodeResponse(w, http.StatusInternalServerError, responseError{
 					Error: "Error validating object",
 				})
-				return
 			}
+			return
 		}
 
 		// return response
@@ -128,7 +127,7 @@ func (h *Handler) HandleUpdateUser() http.HandlerFunc {
 	}
 }
 
-// HandleUpdateUser is a Handler that creates a user based on a user object from the request body.
+// HandleCreateUser is a Handler that creates a user based on a user object from the request body.
 func (h *Handler) HandleCreateUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate body as object
@@ -158,7 +157,7 @@ func (h *Handler) HandleCreateUser() http.HandlerFunc {
 	}
 }
 
-// HandleUpdateUser is a Handler that deletes a user based on an ID.
+// HandleDeleteUser is a Handler that deletes a user based on an ID.
 func (h *Handler) HandleDeleteUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate ID
@@ -181,14 +180,13 @@ func (h *Handler) HandleDeleteUser() http.HandlerFunc {
 				encodeResponse(w, http.StatusBadRequest, responseError{
 					Error: "Object does not exist",
 				})
-				return
 			default:
 				h.logger.Error("error getting object by ID", "error", err)
 				encodeResponse(w, http.StatusInternalServerError, responseError{
 					Error: "Error validating object",
 				})
-				return
 			}
+			return
 		}
 
 		// delete user
