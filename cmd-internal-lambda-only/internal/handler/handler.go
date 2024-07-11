@@ -12,12 +12,12 @@ type APIGatewayHandler func(context.Context, events.APIGatewayProxyRequest) (eve
 
 type Handler struct {
 	logger      *slog.Logger
-	userService user.Service
+	UserService user.Service
 }
 
 func NewHandler(logger *slog.Logger, us user.Service) Handler {
 	return Handler{
 		logger:      logger,
-		userService: us,
+		UserService: us,
 	}
 }

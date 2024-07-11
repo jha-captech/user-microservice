@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -14,13 +16,18 @@ import (
 func (h *Handler) ListUsersHandler() APIGatewayHandler {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		// get values from db
-		users, err := h.userService.ListUsers()
+		users, err := h.UserService.ListUsers()
 		if err != nil {
-			return h.returnErr("Not a valid ID", err, http.StatusInternalServerError)
+			h.logger.Error("Encountered error while getting objects from the database", "err", err)
+			return h.returnJSON(http.StatusInternalServerError, ResponseError{
+				Error: "Internal server error",
+			})
 		}
 
 		// return response
-		return h.returnJSON(http.StatusOK, ResponseAllUsers{Users: users})
+		return h.returnJSON(http.StatusOK, ResponseAllUsers{
+			Users: users,
+		})
 	}
 }
 
@@ -31,17 +38,32 @@ func (h *Handler) FetchUsersHandler() APIGatewayHandler {
 		idString := request.PathParameters["ID"]
 		ID, err := strconv.Atoi(idString)
 		if err != nil {
-			return h.returnErr("Not a valid ID", err, http.StatusBadRequest)
+			h.logger.Error("Failed to parse ID from path paramaters", "err", err)
+			return h.returnJSON(http.StatusBadRequest, ResponseError{
+				Error: "Not a valid ID",
+			})
 		}
 
-		// get values from db
-		user, err := h.userService.FetchUser(ID)
+		// get value from db
+		user, err := h.UserService.FetchUser(ID)
 		if err != nil {
-			return h.returnErr("Error retrieving data", err, http.StatusInternalServerError)
+			switch {
+			case errors.Is(err, sql.ErrNoRows):
+				return h.returnJSON(http.StatusOK, ResponseOneUser{
+					User: models.User{},
+				})
+			default:
+				h.logger.Error("Encountered error while getting object from the database", "err", err)
+				return h.returnJSON(http.StatusInternalServerError, ResponseError{
+					Error: "Internal server error",
+				})
+			}
 		}
 
 		// return response
-		return h.returnJSON(http.StatusOK, ResponseOneUser{User: user})
+		return h.returnJSON(http.StatusOK, ResponseOneUser{
+			User: user,
+		})
 	}
 }
 
@@ -52,24 +74,35 @@ func (h *Handler) UpdateUsersHandler() APIGatewayHandler {
 		idString := request.PathParameters["ID"]
 		ID, err := strconv.Atoi(idString)
 		if err != nil {
-			return h.returnErr("Not a valid ID", err, http.StatusBadRequest)
+			h.logger.Error("Failed to parse ID from path paramaters", "err", err)
+			return h.returnJSON(http.StatusBadRequest, ResponseError{
+				Error: "Not a valid ID",
+			})
 		}
 
 		// get and validate body as object
 		var inputUser models.User
 		err = json.Unmarshal([]byte(request.Body), &inputUser)
 		if err != nil {
-			return h.returnErr("Missing values or malformed body", err, http.StatusBadRequest)
+			h.logger.Error("Failed to unmarshal request body", "err", err)
+			return h.returnJSON(http.StatusBadRequest, ResponseError{
+				Error: "Missing values or malformed body",
+			})
 		}
 
-		// update object in database
-		user, err := h.userService.UpdateUser(ID, inputUser)
+		// update object in db
+		user, err := h.UserService.UpdateUser(ID, inputUser)
 		if err != nil {
-			return h.returnErr("Error updating object", err, http.StatusInternalServerError)
+			h.logger.Error("Encountered error while updating object in the database", "err", err)
+			return h.returnJSON(http.StatusInternalServerError, ResponseError{
+				Error: "Internal server error",
+			})
 		}
 
 		// return response
-		return h.returnJSON(http.StatusOK, ResponseOneUser{User: user})
+		return h.returnJSON(http.StatusOK, ResponseOneUser{
+			User: user,
+		})
 	}
 }
 
@@ -80,17 +113,25 @@ func (h *Handler) CreateUsersHandler() APIGatewayHandler {
 		var inputUser models.User
 		err := json.Unmarshal([]byte(request.Body), &inputUser)
 		if err != nil {
-			return h.returnErr("missing values or malformed body", err, http.StatusBadRequest)
+			h.logger.Error("Failed to unmarshal request body", "err", err)
+			return h.returnJSON(http.StatusBadRequest, ResponseError{
+				Error: "Missing values or malformed body",
+			})
 		}
 
-		// create object in database
-		ID, err := h.userService.CreateUser(inputUser)
+		// create object in db
+		ID, err := h.UserService.CreateUser(inputUser)
 		if err != nil {
-			return h.returnErr("Error updating object", err, http.StatusInternalServerError)
+			h.logger.Error("Encountered error while creating object in the database", "err", err)
+			return h.returnJSON(http.StatusInternalServerError, ResponseError{
+				Error: "Internal server error",
+			})
 		}
 
 		// return response
-		return h.returnJSON(http.StatusOK, ResponseID{ObjectID: ID})
+		return h.returnJSON(http.StatusOK, ResponseID{
+			ObjectID: ID,
+		})
 	}
 }
 
@@ -101,24 +142,40 @@ func (h *Handler) DeleteUsersHandler() APIGatewayHandler {
 		idString := request.PathParameters["ID"]
 		ID, err := strconv.Atoi(idString)
 		if err != nil {
-			return h.returnErr("Not a valid ID", err, http.StatusBadRequest)
+			h.logger.Error("Failed to parse ID from path paramaters", "err", err)
+			return h.returnJSON(http.StatusBadRequest, ResponseError{
+				Error: "Not a valid ID",
+			})
 		}
 
 		// check that object exists
-		user, err := h.userService.FetchUser(ID)
+		_, err = h.UserService.FetchUser(ID)
 		if err != nil {
-			return h.returnErr("Error validating object", err, http.StatusInternalServerError)
-		}
-		if user.ID == 0 {
-			return h.returnErr("Object does not exist", err, http.StatusInternalServerError)
+			switch {
+			case errors.Is(err, sql.ErrNoRows):
+				h.logger.Error("Object with given ID does not exist", "ID", ID, "err", err)
+				return h.returnJSON(http.StatusBadRequest, ResponseError{
+					Error: "Internal server error",
+				})
+			default:
+				h.logger.Error("Encountered error while validating object in the database", "err", err)
+				return h.returnJSON(http.StatusInternalServerError, ResponseError{
+					Error: "Internal server error",
+				})
+			}
 		}
 
-		// delete user
-		if err = h.userService.DeleteUser(ID); err != nil {
-			return h.returnErr("Error deleting object.", err, http.StatusInternalServerError)
+		// delete returnedUser from db
+		if err = h.UserService.DeleteUser(ID); err != nil {
+			h.logger.Error("Encountered error while deleting object from the database", "err", err)
+			return h.returnJSON(http.StatusInternalServerError, ResponseError{
+				Error: "Internal server error",
+			})
 		}
 
 		// return response
-		return h.returnJSON(http.StatusOK, ResponseMessage{Message: "object successful deleted"})
+		return h.returnJSON(http.StatusOK, ResponseMessage{
+			Message: "object successful deleted",
+		})
 	}
 }

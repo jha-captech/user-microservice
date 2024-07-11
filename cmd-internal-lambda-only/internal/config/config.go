@@ -14,6 +14,7 @@ import (
 
 type Configuration struct {
 	Env      string `env:"ENV"`
+	LogLevel string `env:"LOG_LEVEL"`
 	Database struct {
 		Name            string `env:"DATABASE_NAME,required"`
 		User            string `env:"DATABASE_USER,required"`
@@ -24,22 +25,22 @@ type Configuration struct {
 	}
 }
 
-// MustNewConfiguration returns a Configuration struct from environment variables or panics if this fails.
-func MustNewConfiguration() Configuration {
+// NewConfiguration returns a Configuration struct from environment variables or panics if this fails.
+func NewConfiguration() (Configuration, error) {
 	loadEnv()
 
 	config := Configuration{}
 
 	if err := ParseStructFromEnv(&config); err != nil {
-		panic(fmt.Sprintf("Error unmarshaling ENV vars: %v", err))
+		return Configuration{}, fmt.Errorf("[in NewConfiguration] Error unmarshaling ENV vars: %w", err)
 	}
 
-	return config
+	return config, nil
 }
 
 func loadEnv() {
 	if err := godotenv.Load(); err != nil {
-		slog.Info("DOTENV: No .env file found or error reading file.")
+		slog.Info("DOTENV: No .env file found or error reading file.", "err", err)
 		return
 	}
 	slog.Info("DOTENV: .env found.")

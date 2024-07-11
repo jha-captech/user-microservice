@@ -27,25 +27,12 @@ type ResponseError struct {
 	Error string `json:"error"`
 }
 
-func (h *Handler) returnErr(msg string, err error, status int) (events.APIGatewayProxyResponse, error) {
-	h.logger.Error(msg, "err", err)
-
-	respBody, _ := json.Marshal(ResponseError{Error: msg})
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: status,
-		Body:       string(respBody),
-	}, nil
-}
-
 func (h *Handler) returnJSON(statusCode int, data any) (events.APIGatewayProxyResponse, error) {
 	JSONData, err := json.Marshal(data)
 	if err != nil {
-		return h.returnErr("Error marshaling return", err, http.StatusInternalServerError)
+		h.logger.Error("Error marshaling return", "err", err, "data", data)
+		return events.APIGatewayProxyResponse{StatusCode: http.StatusInternalServerError}, nil
 	}
 
-	return events.APIGatewayProxyResponse{
-		StatusCode: statusCode,
-		Body:       string(JSONData),
-	}, nil
+	return events.APIGatewayProxyResponse{StatusCode: statusCode, Body: string(JSONData)}, nil
 }

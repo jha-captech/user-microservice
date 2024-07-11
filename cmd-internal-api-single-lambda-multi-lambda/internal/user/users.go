@@ -29,7 +29,7 @@ func (s Service) ListUsers() ([]models.User, error) {
 		`,
 	)
 	if err != nil {
-		return []models.User{}, fmt.Errorf("in ListUsers:, %w", err)
+		return []models.User{}, fmt.Errorf("[in ListUsers]:, %w", err)
 	}
 	defer rows.Close()
 
@@ -38,13 +38,13 @@ func (s Service) ListUsers() ([]models.User, error) {
 		var user models.User
 		err = rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Role, &user.UserID)
 		if err != nil {
-			return []models.User{}, fmt.Errorf("in ListUsers:, %w", err)
+			return []models.User{}, fmt.Errorf("[in ListUsers]:, %w", err)
 		}
 		users = append(users, user)
 	}
 
 	if err = rows.Err(); err != nil {
-		return []models.User{}, fmt.Errorf("in ListUsers:, %w", err)
+		return []models.User{}, fmt.Errorf("[in ListUsers]:, %w", err)
 	}
 
 	return users, nil
@@ -70,7 +70,7 @@ func (s Service) FetchUser(ID int) (models.User, error) {
 		).
 		Scan(&user.ID, &user.FirstName, &user.LastName, &user.Role, &user.UserID)
 	if err != nil {
-		return models.User{}, fmt.Errorf("in ListUsers:, %w", err)
+		return models.User{}, fmt.Errorf("[in FetchUser]:, %w", err)
 	}
 
 	return user, nil
@@ -97,7 +97,7 @@ func (s Service) UpdateUser(ID int, user models.User) (models.User, error) {
 		ID,
 	)
 	if err != nil {
-		return models.User{}, fmt.Errorf("in UpdateUser: %w", err)
+		return models.User{}, fmt.Errorf("[in UpdateUser]: %w", err)
 	}
 
 	user.ID = uint(ID)
@@ -119,7 +119,7 @@ func (s Service) CreateUser(user models.User) (int, error) {
 		user.UserID,
 	).Scan(&ID)
 	if err != nil {
-		return 0, fmt.Errorf("in CreateUser: %w", err)
+		return 0, fmt.Errorf("[in CreateUser]: %w", err)
 	}
 
 	return ID, nil
@@ -135,7 +135,7 @@ func (s Service) DeleteUser(ID int) error {
 		ID,
 	)
 	if err != nil {
-		return fmt.Errorf("could not delete user: %v", err)
+		return fmt.Errorf("[in DeleteUser]: %w", err)
 	}
 
 	return nil
