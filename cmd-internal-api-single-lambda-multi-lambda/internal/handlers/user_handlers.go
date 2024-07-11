@@ -37,16 +37,16 @@ func (h *Handler) HandleListUsers() http.HandlerFunc {
 		users, err := h.userService.ListUsers()
 		if err != nil {
 			h.logger.Error("error getting all locations", "error", err)
-			encodeResponse(
-				w,
-				http.StatusInternalServerError,
-				responseError{Error: "Error retrieving data"},
-			)
+			encodeResponse(w, http.StatusInternalServerError, responseError{
+				Error: "Error retrieving data",
+			})
 			return
 		}
 
 		// return response
-		encodeResponse(w, http.StatusOK, responseAllUsers{Users: users})
+		encodeResponse(w, http.StatusOK, responseAllUsers{
+			Users: users,
+		})
 	}
 }
 
