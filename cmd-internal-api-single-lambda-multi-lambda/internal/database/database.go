@@ -10,20 +10,16 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type Database struct {
-	Session *sql.DB
-}
-
-// NewDatabase Establish Session connection and migrate tables before
+// New Establish Session connection and migrate tables before
 // returning Database.Database struct.
-func NewDatabase(connectionString string, logger *slog.Logger, retryCount int) (Database, error) {
+func New(connectionString string, logger *slog.Logger, retryCount int) (*sql.DB, error) {
 	logger.Info("Attempting to connect to Database")
 	db, err := retryWithReturn(retryCount, 100*time.Millisecond, func() (*sql.DB, error) {
 		return sql.Open("postgres", connectionString)
 	})
 	if err != nil {
-		return Database{}, fmt.Errorf(
-			"[in NewDatabase] Failed to connect to Database after %d attempts: %w",
+		return nil, fmt.Errorf(
+			"[in New] Failed to connect to Database after %d attempts: %w",
 			retryCount,
 			err,
 		)
@@ -35,8 +31,8 @@ func NewDatabase(connectionString string, logger *slog.Logger, retryCount int) (
 	})
 	if err != nil {
 		db.Close()
-		return Database{}, fmt.Errorf(
-			"[in NewDatabase] Failed to ping Database after %d attempts: %w",
+		return nil, fmt.Errorf(
+			"[in New] Failed to ping Database after %d attempts: %w",
 			retryCount,
 			err,
 		)
@@ -44,7 +40,7 @@ func NewDatabase(connectionString string, logger *slog.Logger, retryCount int) (
 
 	logger.Info("Database connection established")
 
-	return Database{Session: db}, nil
+	return db, nil
 }
 
 // retry will retry a given function n times with a wait of a given duration between each retry attempt.

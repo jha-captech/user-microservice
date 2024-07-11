@@ -12,7 +12,7 @@ import (
 	"github.com/jha-captech/user-microservice/internal/database"
 	"github.com/jha-captech/user-microservice/internal/handlers"
 	"github.com/jha-captech/user-microservice/internal/routes"
-	"github.com/jha-captech/user-microservice/internal/user"
+	"github.com/jha-captech/user-microservice/internal/service"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func run() error {
 
 	logger := slog.Default()
 
-	db, err := database.NewDatabase(
+	db, err := database.New(
 		fmt.Sprintf(
 			"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 			cfg.Database.Host,
@@ -45,11 +45,11 @@ func run() error {
 		return fmt.Errorf("[in run]: %w", err)
 	}
 
-	defer db.Session.Close()
+	defer db.Close()
 
 	r := chi.NewRouter()
 
-	us := user.NewService(db)
+	us := service.NewService(db)
 	h := handlers.New(logger, us)
 	routes.RegisterRoutes(r, h)
 

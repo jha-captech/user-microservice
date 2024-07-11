@@ -1,18 +1,18 @@
-package user
+package service
 
 import (
+	"database/sql"
 	"fmt"
 
-	"github.com/jha-captech/user-microservice/internal/database"
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
 type Service struct {
-	Database database.Database
+	Database *sql.DB
 }
 
 // NewService returns a new Service struct.
-func NewService(db database.Database) Service {
+func NewService(db *sql.DB) Service {
 	return Service{
 		Database: db,
 	}
@@ -20,7 +20,7 @@ func NewService(db database.Database) Service {
 
 // ListUsers returns a list of all User objects from the Database.
 func (s Service) ListUsers() ([]models.User, error) {
-	rows, err := s.Database.Session.Query(
+	rows, err := s.Database.Query(
 		`
 		SELECT 
 		    * 
@@ -53,7 +53,7 @@ func (s Service) ListUsers() ([]models.User, error) {
 // FetchUser returns am User objects from the Database by ID.
 func (s Service) FetchUser(ID int) (models.User, error) {
 	var user models.User
-	err := s.Database.Session.
+	err := s.Database.
 		QueryRow(
 			`
 			SELECT
@@ -78,7 +78,7 @@ func (s Service) FetchUser(ID int) (models.User, error) {
 
 // UpdateUser updates am User objects from the Database by ID.
 func (s Service) UpdateUser(ID int, user models.User) (models.User, error) {
-	_, err := s.Database.Session.Exec(
+	_, err := s.Database.Exec(
 		`
 		UPDATE
 			"users"
@@ -107,7 +107,7 @@ func (s Service) UpdateUser(ID int, user models.User) (models.User, error) {
 // CreateUser creates am User objects in the Database.
 func (s Service) CreateUser(user models.User) (int, error) {
 	var ID int
-	err := s.Database.Session.QueryRow(
+	err := s.Database.QueryRow(
 		`
 		INSERT INTO "users" ("first_name", "last_name", "role", "user_id")
 			VALUES ($1, $2, $3, $4)
@@ -127,7 +127,7 @@ func (s Service) CreateUser(user models.User) (int, error) {
 
 // DeleteUser deletes am User objects from the Database by ID.
 func (s Service) DeleteUser(ID int) error {
-	_, err := s.Database.Session.Exec(
+	_, err := s.Database.Exec(
 		`
 		DELETE FROM "users"
 		WHERE "users"."id" = $1

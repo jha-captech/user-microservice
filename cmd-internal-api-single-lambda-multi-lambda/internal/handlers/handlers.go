@@ -3,17 +3,17 @@ package handlers
 import (
 	"log/slog"
 
-	"github.com/jha-captech/user-microservice/internal/user"
+	"github.com/jha-captech/user-microservice/internal/service"
 )
 
 // ── Handler Struct And Constructor ───────────────────────────────────────────────────────────────
 
 type Handler struct {
 	logger      *slog.Logger
-	userService user.Service
+	userService service.Service
 }
 
-func New(logger *slog.Logger, us user.Service) Handler {
+func New(logger *slog.Logger, us service.Service) Handler {
 	return Handler{
 		logger:      logger,
 		userService: us,
