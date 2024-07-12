@@ -19,6 +19,7 @@ Globals:
     Environment:
       Variables:
         ENV: !Ref ENV
+        LOG_LEVEL: !Ref LOG_LEVEL
         DATABASE_CONTAINER_NAME: !Ref DATABASE_CONTAINER_NAME
         DATABASE_NAME: !Ref DATABASE_NAME
         DATABASE_USER: !Ref DATABASE_USER

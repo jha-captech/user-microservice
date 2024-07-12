@@ -11,34 +11,34 @@ import (
 )
 
 // New Establish Session connection and migrate tables before
-// returning Database.Database struct.
+// returning database.database struct.
 func New(connectionString string, logger *slog.Logger, retryCount int) (*sql.DB, error) {
-	logger.Info("Attempting to connect to Database")
+	logger.Info("Attempting to connect to database")
 	db, err := retryWithReturn(retryCount, 100*time.Millisecond, func() (*sql.DB, error) {
 		return sql.Open("postgres", connectionString)
 	})
 	if err != nil {
 		return nil, fmt.Errorf(
-			"[in New] Failed to connect to Database after %d attempts: %w",
+			"[in New] Failed to connect to database after %d attempts: %w",
 			retryCount,
 			err,
 		)
 	}
 
-	logger.Info("Attempting to ping Database")
+	logger.Info("Attempting to ping database")
 	err = retry(retryCount, 500*time.Millisecond, func() error {
 		return db.Ping()
 	})
 	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf(
-			"[in New] Failed to ping Database after %d attempts: %w",
+			"[in New] Failed to ping database after %d attempts: %w",
 			retryCount,
 			err,
 		)
 	}
 
-	logger.Info("Database connection established")
+	logger.Info("database connection established")
 
 	return db, nil
 }

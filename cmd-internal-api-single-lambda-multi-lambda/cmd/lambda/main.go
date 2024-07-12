@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"os"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
 	"github.com/go-chi/chi/v5"
 	"github.com/jha-captech/user-microservice/internal/config"
 	"github.com/jha-captech/user-microservice/internal/database"
-	"github.com/jha-captech/user-microservice/internal/handlers"
+	"github.com/jha-captech/user-microservice/internal/middleware"
 	"github.com/jha-captech/user-microservice/internal/routes"
 	"github.com/jha-captech/user-microservice/internal/service"
 )
@@ -27,7 +28,9 @@ func run() error {
 		return fmt.Errorf("[in run]: %w", err)
 	}
 
-	logger := slog.Default()
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: cfg.LogLevel,
+	}))
 
 	db, err := database.New(
 		fmt.Sprintf(
@@ -45,15 +48,20 @@ func run() error {
 		return fmt.Errorf("[in run]: %w", err)
 	}
 
-	defer db.Close()
+	defer func() {
+		if err = db.Close(); err != nil {
+			logger.Error("Error closing db connection", "err", err)
+		}
+	}()
 
 	r := chi.NewRouter()
 
-	us := service.NewService(db)
-	h := handlers.New(logger, us)
-	routes.RegisterRoutes(r, h)
+	svs := service.New(db)
+	routes.RegisterRoutes(r, logger, svs)
 
-	lambda.Start(httpadapter.New(r).ProxyWithContext)
+	stack := middleware.CreateStack(middleware.RecoveryMiddleware(logger))
+
+	lambda.Start(httpadapter.New(stack(r)).ProxyWithContext)
 
 	return nil
 }

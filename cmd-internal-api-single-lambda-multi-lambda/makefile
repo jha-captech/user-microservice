@@ -39,7 +39,7 @@ app_down:
 
 .PHONY: single_lambda_build
 single_lambda_build:
-	sam build --template-file single_lambda.template.yaml
+	sam build --template-file single_lambda.template.yaml --no-cached
 
 .PHONY: single_lambda_local_api
 single_lambda_local_api: db_up single_lambda_build
@@ -49,7 +49,7 @@ single_lambda_local_api: db_up single_lambda_build
 
 .PHONY: multiple_lambda_build
 multiple_lambda_build:
-	sam build --template-file multiple_lambda.template.yaml
+	sam build --template-file multiple_lambda.template.yaml --no-cached
 
 .PHONY: multiple_lambda_local_api
 multiple_lambda_local_api: db_up multiple_lambda_build

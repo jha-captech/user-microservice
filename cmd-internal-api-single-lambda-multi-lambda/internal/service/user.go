@@ -8,19 +8,19 @@ import (
 )
 
 type Service struct {
-	Database *sql.DB
+	database *sql.DB
 }
 
-// NewService returns a new Service struct.
-func NewService(db *sql.DB) Service {
-	return Service{
-		Database: db,
+// New returns a new Service struct.
+func New(db *sql.DB) *Service {
+	return &Service{
+		database: db,
 	}
 }
 
-// ListUsers returns a list of all User objects from the Database.
+// ListUsers returns a list of all User objects from the database.
 func (s Service) ListUsers() ([]models.User, error) {
-	rows, err := s.Database.Query(
+	rows, err := s.database.Query(
 		`
 		SELECT 
 		    * 
@@ -50,10 +50,10 @@ func (s Service) ListUsers() ([]models.User, error) {
 	return users, nil
 }
 
-// FetchUser returns am User objects from the Database by ID.
+// FetchUser returns am User objects from the database by ID.
 func (s Service) FetchUser(ID int) (models.User, error) {
 	var user models.User
-	err := s.Database.
+	err := s.database.
 		QueryRow(
 			`
 			SELECT
@@ -76,9 +76,9 @@ func (s Service) FetchUser(ID int) (models.User, error) {
 	return user, nil
 }
 
-// UpdateUser updates am User objects from the Database by ID.
+// UpdateUser updates am User objects from the database by ID.
 func (s Service) UpdateUser(ID int, user models.User) (models.User, error) {
-	_, err := s.Database.Exec(
+	_, err := s.database.Exec(
 		`
 		UPDATE
 			"users"
@@ -104,10 +104,10 @@ func (s Service) UpdateUser(ID int, user models.User) (models.User, error) {
 	return user, nil
 }
 
-// CreateUser creates am User objects in the Database.
+// CreateUser creates am User objects in the database.
 func (s Service) CreateUser(user models.User) (int, error) {
 	var ID int
-	err := s.Database.QueryRow(
+	err := s.database.QueryRow(
 		`
 		INSERT INTO "users" ("first_name", "last_name", "role", "user_id")
 			VALUES ($1, $2, $3, $4)
@@ -125,9 +125,9 @@ func (s Service) CreateUser(user models.User) (int, error) {
 	return ID, nil
 }
 
-// DeleteUser deletes am User objects from the Database by ID.
+// DeleteUser deletes am User objects from the database by ID.
 func (s Service) DeleteUser(ID int) error {
-	_, err := s.Database.Exec(
+	_, err := s.database.Exec(
 		`
 		DELETE FROM "users"
 		WHERE "users"."id" = $1

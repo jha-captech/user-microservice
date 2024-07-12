@@ -3,76 +3,58 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jha-captech/user-microservice/internal/models"
+	"github.com/jha-captech/user-microservice/internal/service"
 )
 
-type responseOneUser struct {
-	User models.User `json:"user"`
-}
-
-type responseAllUsers struct {
-	Users []models.User `json:"users"`
-}
-
-type responseMessage struct {
-	Message string `json:"message"`
-}
-
-type responseID struct {
-	ObjectID int `json:"object_id"`
-}
-
-type responseError struct {
-	Error string `json:"error"`
-}
-
 // HandleListUsers is a Handler that returns a list of all users.
-func (h *Handler) HandleListUsers() http.HandlerFunc {
+func HandleListUsers(logger *slog.Logger, service *service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// get values from Database
-		users, err := h.userService.ListUsers()
+		// get values from database
+		users, err := service.ListUsers()
 		if err != nil {
-			h.logger.Error("error getting all locations", "error", err)
-			encodeResponse(w, http.StatusInternalServerError, responseError{
+			logger.Error("error getting all locations", "error", err)
+			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
 				Error: "Error retrieving data",
 			})
 			return
 		}
 
 		// return response
-		encodeResponse(w, http.StatusOK, responseAllUsers{
+		encodeResponse(w, logger, http.StatusOK, responseUsers{
 			Users: users,
 		})
 	}
 }
 
 // HandleFetchUser is a Handler that returns a single user by ID.
-func (h *Handler) HandleFetchUser() http.HandlerFunc {
+func HandleFetchUser(logger *slog.Logger, service *service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate ID
 		idString := chi.URLParam(r, "ID")
 		ID, err := strconv.Atoi(idString)
 		if err != nil {
-			h.logger.Error("error getting ID", "error", err)
-			encodeResponse(w, http.StatusBadRequest, responseError{
+			logger.Error("error getting ID", "error", err)
+			encodeResponse(w, logger, http.StatusBadRequest, responseErr{
 				Error: "Not a valid ID",
 			})
 			return
 		}
 
-		// get values from Database
-		user, err := h.userService.FetchUser(ID)
+		// get values from database
+		user, err := service.FetchUser(ID)
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):
-				encodeResponse(w, http.StatusOK, responseOneUser{})
+				encodeResponse(w, logger, http.StatusOK, responseUser{})
 			default:
-				h.logger.Error("error getting object by ID", "error", err)
-				encodeResponse(w, http.StatusInternalServerError, responseError{
+				logger.Error("error getting object by ID", "error", err)
+				encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
 					Error: "Error validating object",
 				})
 			}
@@ -80,109 +62,109 @@ func (h *Handler) HandleFetchUser() http.HandlerFunc {
 		}
 
 		// return response
-		encodeResponse(w, http.StatusOK, responseOneUser{
+		encodeResponse(w, logger, http.StatusOK, responseUser{
 			User: user,
 		})
 	}
 }
 
 // HandleUpdateUser is a Handler that updates a user based on a user object from the request body.
-func (h *Handler) HandleUpdateUser() http.HandlerFunc {
+func HandleUpdateUser(logger *slog.Logger, service *service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate ID
 		idString := chi.URLParam(r, "ID")
 		ID, err := strconv.Atoi(idString)
 		if err != nil {
-			h.logger.Error("error getting ID", "error", err)
-			encodeResponse(w, http.StatusBadRequest, responseError{
+			logger.Error("error getting ID", "error", err)
+			encodeResponse(w, logger, http.StatusBadRequest, responseErr{
 				Error: "Not a valid ID",
 			})
 			return
 		}
 
 		// get and validate body as object
-		inputUser, err := decodeToStruct[models.User](r)
+		inputUser, err := decodeRequestBody[models.User](r)
 		if err != nil {
-			h.logger.Error("BodyParser error", "error", err)
-			encodeResponse(w, http.StatusBadRequest, responseError{
+			logger.Error("BodyParser error", "error", err)
+			encodeResponse(w, logger, http.StatusBadRequest, responseErr{
 				Error: "missing values or malformed body",
 			})
 			return
 		}
 
-		// update object in Database
-		user, err := h.userService.UpdateUser(ID, inputUser)
+		// update object in database
+		user, err := service.UpdateUser(ID, inputUser)
 		if err != nil {
-			h.logger.Error("error updating object in Database", "error", err)
-			encodeResponse(w, http.StatusInternalServerError, responseError{
+			logger.Error("error updating object in database", "error", err)
+			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
 				Error: "Error updating data",
 			})
 			return
 		}
 
 		// return response
-		encodeResponse(w, http.StatusOK, responseOneUser{
+		encodeResponse(w, logger, http.StatusOK, responseUser{
 			User: user,
 		})
 	}
 }
 
 // HandleCreateUser is a Handler that creates a user based on a user object from the request body.
-func (h *Handler) HandleCreateUser() http.HandlerFunc {
+func HandleCreateUser(logger *slog.Logger, service *service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate body as object
-		inputUser, err := decodeToStruct[models.User](r)
+		inputUser, err := decodeRequestBody[models.User](r)
 		if err != nil {
-			h.logger.Error("BodyParser error", "error", err)
-			encodeResponse(w, http.StatusBadRequest, responseError{
+			logger.Error("BodyParser error", "error", err)
+			encodeResponse(w, logger, http.StatusBadRequest, responseErr{
 				Error: "missing values or malformed body",
 			})
 			return
 		}
 
-		// create object in Database
-		ID, err := h.userService.CreateUser(inputUser)
+		// create object in database
+		ID, err := service.CreateUser(inputUser)
 		if err != nil {
-			h.logger.Error("error creating object to Database", "error", err)
-			encodeResponse(w, http.StatusInternalServerError, responseError{
+			logger.Error("error creating object to database", "error", err)
+			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
 				Error: "Error creating object",
 			})
 			return
 		}
 
 		// return response
-		encodeResponse(w, http.StatusOK, responseID{
+		encodeResponse(w, logger, http.StatusOK, responseID{
 			ObjectID: ID,
 		})
 	}
 }
 
 // HandleDeleteUser is a Handler that deletes a user based on an ID.
-func (h *Handler) HandleDeleteUser() http.HandlerFunc {
+func HandleDeleteUser(logger *slog.Logger, service *service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate ID
 		idString := chi.URLParam(r, "ID")
 		ID, err := strconv.Atoi(idString)
 		if err != nil {
-			h.logger.Error("error getting ID", "error", err)
-			encodeResponse(w, http.StatusBadRequest, responseError{
+			logger.Error("error getting ID", "error", err)
+			encodeResponse(w, logger, http.StatusBadRequest, responseErr{
 				Error: "Not a valid ID",
 			})
 			return
 		}
 
 		// check that object exists
-		_, err = h.userService.FetchUser(ID)
+		_, err = service.FetchUser(ID)
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):
-				h.logger.Error("Object does not exist", "error", err)
-				encodeResponse(w, http.StatusBadRequest, responseError{
+				logger.Error("Object does not exist", "error", err)
+				encodeResponse(w, logger, http.StatusBadRequest, responseErr{
 					Error: "Object does not exist",
 				})
 			default:
-				h.logger.Error("error getting object by ID", "error", err)
-				encodeResponse(w, http.StatusInternalServerError, responseError{
+				logger.Error("error getting object by ID", "error", err)
+				encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
 					Error: "Error validating object",
 				})
 			}
@@ -190,16 +172,16 @@ func (h *Handler) HandleDeleteUser() http.HandlerFunc {
 		}
 
 		// delete user
-		if err = h.userService.DeleteUser(ID); err != nil {
-			h.logger.Error("error deleting object by ID", "ID", ID, "error", err)
-			encodeResponse(w, http.StatusInternalServerError, responseError{
+		if err = service.DeleteUser(ID); err != nil {
+			logger.Error("error deleting object by ID", "ID", ID, "error", err)
+			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
 				Error: "Error deleting object.",
 			})
 			return
 		}
 
 		// return message
-		encodeResponse(w, http.StatusOK, responseMessage{
+		encodeResponse(w, logger, http.StatusOK, responseMsg{
 			Message: "object successful deleted",
 		})
 	}

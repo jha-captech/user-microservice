@@ -2,12 +2,14 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/caarlos0/env/v11"
 )
 
 type Configuration struct {
-	Env      string `env:"ENV"`
+	Env      string     `env:"ENV"`
+	LogLevel slog.Level `env:"LOG_LEVEL,required"`
 	Database struct {
 		Name            string `env:"DATABASE_NAME"`
 		User            string `env:"DATABASE_USER"`
@@ -24,9 +26,10 @@ type Configuration struct {
 }
 
 func New() (Configuration, error) {
-	cfg := Configuration{}
-	if err := env.Parse(&cfg); err != nil {
+	cfg, err := env.ParseAs[Configuration]()
+	if err != nil {
 		return Configuration{}, fmt.Errorf("[in config.New]: %w", err)
 	}
+
 	return cfg, nil
 }
