@@ -26,8 +26,13 @@ func HandleListUsers(logger *slog.Logger, service *service.Service) http.Handler
 		}
 
 		// return response
+		usersOut := make([]outputUser, len(users))
+		for _, user := range users {
+			userOut := mapOutput(user)
+			usersOut = append(usersOut, userOut)
+		}
 		encodeResponse(w, logger, http.StatusOK, responseUsers{
-			Users: users,
+			Users: usersOut,
 		})
 	}
 }
@@ -51,6 +56,7 @@ func HandleFetchUser(logger *slog.Logger, service *service.Service) http.Handler
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):
+				// no user found
 				encodeResponse(w, logger, http.StatusOK, responseUser{})
 			default:
 				logger.Error("error getting object by ID", "error", err)
@@ -62,8 +68,9 @@ func HandleFetchUser(logger *slog.Logger, service *service.Service) http.Handler
 		}
 
 		// return response
+		userOut := mapOutput(user)
 		encodeResponse(w, logger, http.StatusOK, responseUser{
-			User: user,
+			User: userOut,
 		})
 	}
 }
@@ -83,17 +90,25 @@ func HandleUpdateUser(logger *slog.Logger, service *service.Service) http.Handle
 		}
 
 		// get and validate body as object
-		inputUser, err := decodeRequestBody[models.User](r)
+		userIn, problems, err := decodeValidateBody[inputUser, models.User](r)
 		if err != nil {
-			logger.Error("BodyParser error", "error", err)
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{
-				Error: "missing values or malformed body",
-			})
+			switch {
+			case len(problems) > 0:
+				logger.Error("Problems validating input", "error", err, "problems", problems)
+				encodeResponse(w, logger, http.StatusBadRequest, responseErr{
+					ValidationErrors: problems,
+				})
+			default:
+				logger.Error("BodyParser error", "error", err)
+				encodeResponse(w, logger, http.StatusBadRequest, responseErr{
+					Error: "missing values or malformed body",
+				})
+			}
 			return
 		}
 
 		// update object in database
-		user, err := service.UpdateUser(ID, inputUser)
+		user, err := service.UpdateUser(ID, userIn)
 		if err != nil {
 			logger.Error("error updating object in database", "error", err)
 			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
@@ -103,8 +118,9 @@ func HandleUpdateUser(logger *slog.Logger, service *service.Service) http.Handle
 		}
 
 		// return response
+		userOut := mapOutput(user)
 		encodeResponse(w, logger, http.StatusOK, responseUser{
-			User: user,
+			User: userOut,
 		})
 	}
 }
@@ -113,17 +129,25 @@ func HandleUpdateUser(logger *slog.Logger, service *service.Service) http.Handle
 func HandleCreateUser(logger *slog.Logger, service *service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate body as object
-		inputUser, err := decodeRequestBody[models.User](r)
+		userIn, problems, err := decodeValidateBody[inputUser, models.User](r)
 		if err != nil {
-			logger.Error("BodyParser error", "error", err)
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{
-				Error: "missing values or malformed body",
-			})
+			switch {
+			case len(problems) > 0:
+				logger.Error("Problems validating input", "error", err, "problems", problems)
+				encodeResponse(w, logger, http.StatusBadRequest, responseErr{
+					ValidationErrors: problems,
+				})
+			default:
+				logger.Error("BodyParser error", "error", err)
+				encodeResponse(w, logger, http.StatusBadRequest, responseErr{
+					Error: "missing values or malformed body",
+				})
+			}
 			return
 		}
 
 		// create object in database
-		ID, err := service.CreateUser(inputUser)
+		ID, err := service.CreateUser(userIn)
 		if err != nil {
 			logger.Error("error creating object to database", "error", err)
 			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
