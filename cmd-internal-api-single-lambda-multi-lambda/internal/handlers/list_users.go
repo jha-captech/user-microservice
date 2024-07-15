@@ -34,9 +34,9 @@ func HandleListUsers(logger sLogger, service listUserServicer) http.HandlerFunc 
 
 		// return response
 		usersOut := make([]outputUser, len(users))
-		for _, user := range users {
-			userOut := mapOutput(user)
-			usersOut = append(usersOut, userOut)
+		for i := 0; i < len(users); i++ {
+			userOut := mapOutput(users[i])
+			usersOut[i] = userOut
 		}
 		encodeResponse(w, logger, http.StatusOK, responseUsers{
 			Users: usersOut,

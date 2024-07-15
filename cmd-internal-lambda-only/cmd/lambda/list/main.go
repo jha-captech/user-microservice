@@ -5,7 +5,6 @@ import (
 	"log"
 	"log/slog"
 	"os"
-	"strings"
 
 	"github.com/aws/aws-lambda-go/lambda"
 
@@ -25,18 +24,6 @@ func run() error {
 	cfg, err := config.NewConfiguration()
 	if err != nil {
 		return fmt.Errorf("[in run]: %w", err)
-	}
-
-	var logLevel slog.Level
-	switch strings.ToUpper(cfg.LogLevel) {
-	case "DEBUG":
-		logLevel = slog.LevelDebug
-	case "WARN":
-		logLevel = slog.LevelWarn
-	case "ERROR":
-		logLevel = slog.LevelError
-	default:
-		logLevel = slog.LevelInfo
 	}
 
 	// logger := slog.Default()

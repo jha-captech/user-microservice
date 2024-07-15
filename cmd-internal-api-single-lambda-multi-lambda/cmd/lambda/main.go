@@ -59,6 +59,7 @@ func run() error {
 	r.Use(middleware.Recoverer)
 
 	svs := service.NewUser(db)
+
 	routes.RegisterRoutes(r, logger, svs)
 
 	lambda.Start(httpadapter.New(r).ProxyWithContext)

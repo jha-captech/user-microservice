@@ -50,7 +50,7 @@ func HandleFetchUser(logger *slog.Logger, service fetchUserServicer) http.Handle
 			default:
 				logger.Error("error getting object by ID", "error", err)
 				encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
-					Error: "Error validating object",
+					Error: "Internal server error",
 				})
 			}
 			return

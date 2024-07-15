@@ -62,7 +62,7 @@ func HandleUpdateUser(logger *slog.Logger, service updateUserServicer) http.Hand
 		if err != nil {
 			logger.Error("error updating object in database", "error", err)
 			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
-				Error: "Error updating data",
+				Error: "Error updating object",
 			})
 			return
 		}
