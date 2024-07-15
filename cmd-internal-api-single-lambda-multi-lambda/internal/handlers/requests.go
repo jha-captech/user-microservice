@@ -73,12 +73,3 @@ func decodeValidateBody[I ValidatorMapper[O], O any](r *http.Request) (O, map[st
 
 	return data, nil, nil
 }
-
-// decodeRequestBody decodes a request body as a struct of type T.
-func decodeRequestBody[T any](r *http.Request) (T, error) {
-	var data T
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		return data, fmt.Errorf("decode json: %w", err)
-	}
-	return data, nil
-}

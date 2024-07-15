@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 
 	"github.com/jha-captech/user-microservice/internal/models"
@@ -48,7 +47,7 @@ type responseErr struct {
 }
 
 // encodeResponse encodes a struct of type T as a JSON response.
-func encodeResponse(w http.ResponseWriter, logger *slog.Logger, status int, data any) {
+func encodeResponse(w http.ResponseWriter, logger sLogger, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(data); err != nil {

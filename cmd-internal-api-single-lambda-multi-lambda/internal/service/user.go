@@ -7,19 +7,19 @@ import (
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type Service struct {
+type User struct {
 	database *sql.DB
 }
 
-// New returns a new Service struct.
-func New(db *sql.DB) *Service {
-	return &Service{
+// NewUser returns a new User struct.
+func NewUser(db *sql.DB) *User {
+	return &User{
 		database: db,
 	}
 }
 
 // ListUsers returns a list of all User objects from the database.
-func (s Service) ListUsers() ([]models.User, error) {
+func (s User) ListUsers() ([]models.User, error) {
 	rows, err := s.database.Query(
 		`
 		SELECT 
@@ -51,7 +51,7 @@ func (s Service) ListUsers() ([]models.User, error) {
 }
 
 // FetchUser returns am User objects from the database by ID.
-func (s Service) FetchUser(ID int) (models.User, error) {
+func (s User) FetchUser(ID int) (models.User, error) {
 	var user models.User
 	err := s.database.
 		QueryRow(
@@ -77,7 +77,7 @@ func (s Service) FetchUser(ID int) (models.User, error) {
 }
 
 // UpdateUser updates am User objects from the database by ID.
-func (s Service) UpdateUser(ID int, user models.User) (models.User, error) {
+func (s User) UpdateUser(ID int, user models.User) (models.User, error) {
 	_, err := s.database.Exec(
 		`
 		UPDATE
@@ -105,7 +105,7 @@ func (s Service) UpdateUser(ID int, user models.User) (models.User, error) {
 }
 
 // CreateUser creates am User objects in the database.
-func (s Service) CreateUser(user models.User) (int, error) {
+func (s User) CreateUser(user models.User) (int, error) {
 	var ID int
 	err := s.database.QueryRow(
 		`
@@ -126,7 +126,7 @@ func (s Service) CreateUser(user models.User) (int, error) {
 }
 
 // DeleteUser deletes am User objects from the database by ID.
-func (s Service) DeleteUser(ID int) error {
+func (s User) DeleteUser(ID int) error {
 	_, err := s.database.Exec(
 		`
 		DELETE FROM "users"

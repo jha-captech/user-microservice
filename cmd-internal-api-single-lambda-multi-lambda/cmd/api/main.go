@@ -13,9 +13,12 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	"github.com/jha-captech/user-microservice/internal/swagger"
+
 	"github.com/jha-captech/user-microservice/internal/config"
 	"github.com/jha-captech/user-microservice/internal/database"
-	"github.com/jha-captech/user-microservice/internal/middleware"
 	"github.com/jha-captech/user-microservice/internal/routes"
 	"github.com/jha-captech/user-microservice/internal/service"
 )
@@ -61,21 +64,37 @@ func run() error {
 
 	r := chi.NewRouter()
 
-	stack := middleware.CreateStack(
-		middleware.CORSMiddleware(middleware.CORSOptions{
-			AllowedOrigins: []string{"*"},
-			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
-		}),
-		middleware.LoggerMiddleware(logger),
-		middleware.RecoveryMiddleware(logger),
-	)
+	// log2 := httplog.NewLogger("user-microservice", httplog.Options{
+	// 	JSON:            false,
+	// 	Concise:         true,
+	// 	ResponseHeaders: false,
+	// })
+	// log2.Info("test log message")
+	//
+	// r.Use(httplog.RequestLogger(log2))
 
-	svs := service.New(db)
-	routes.RegisterRoutes(r, logger, svs)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET", "PUT", "POST", "DELETE"},
+		MaxAge:         300,
+	}))
+
+	svs := service.NewUser(db)
+	routes.RegisterRoutes(r, logger, svs, routes.WithRegisterHealthRoute(true))
+
+	if cfg.UseSwagger {
+		swagger.RunSwagger(r, logger, cfg.HTTP.Domain+cfg.HTTP.Port)
+	}
 
 	serverInstance := &http.Server{
-		Addr:    cfg.HTTP.Domain + cfg.HTTP.Port,
-		Handler: stack(r),
+		Addr:              cfg.HTTP.Domain + cfg.HTTP.Port,
+		IdleTimeout:       time.Minute,
+		ReadHeaderTimeout: 500 * time.Millisecond,
+		ReadTimeout:       500 * time.Millisecond,
+		WriteTimeout:      500 * time.Millisecond,
+		Handler:           r,
 	}
 
 	// Graceful shutdown
@@ -100,9 +119,8 @@ func run() error {
 			}
 		}()
 
-		err = serverInstance.Shutdown(shutdownCtx)
-		if err != nil {
-			log.Fatal(err)
+		if err = serverInstance.Shutdown(shutdownCtx); err != nil {
+			log.Fatal(fmt.Sprintf("Error shutting down server. err: %v", err))
 		}
 		serverStopCtx()
 	}()
