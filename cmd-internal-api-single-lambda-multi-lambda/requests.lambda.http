@@ -23,8 +23,8 @@ Content-Type: application/json
 {
   "first_name": "John",
   "last_name": "DoeNewNewNew",
-  "role": "Customer",
-  "user_id": 1013
+  "role": "CustomerT",
+  "user_id": -1
 }
 
 ### Delete a user by ID

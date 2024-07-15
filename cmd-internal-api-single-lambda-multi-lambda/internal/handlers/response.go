@@ -8,12 +8,30 @@ import (
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
+type outputUser struct {
+	ID        int    `json:"id,omitempty"`
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+	Role      string `json:"role,omitempty"`
+	UserID    int    `json:"user_id,omitempty"`
+}
+
+func mapOutput(user models.User) outputUser {
+	return outputUser{
+		ID:        int(user.ID),
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Role:      user.Role,
+		UserID:    int(user.UserID),
+	}
+}
+
 type responseUser struct {
-	User models.User `json:"user"`
+	User outputUser `json:"user"`
 }
 
 type responseUsers struct {
-	Users []models.User `json:"users"`
+	Users []outputUser `json:"users"`
 }
 
 type responseMsg struct {
@@ -25,7 +43,8 @@ type responseID struct {
 }
 
 type responseErr struct {
-	Error string `json:"error"`
+	Error            string            `json:"error,omitempty"`
+	ValidationErrors map[string]string `json:"validation_errors,omitempty"`
 }
 
 // encodeResponse encodes a struct of type T as a JSON response.
