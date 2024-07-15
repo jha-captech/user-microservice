@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
-	"os"
 
 	"github.com/aws/aws-lambda-go/lambda"
 
@@ -26,8 +25,8 @@ func run() error {
 		return fmt.Errorf("[in run]: %w", err)
 	}
 
-	// logger := slog.Default()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
+	logger := slog.Default()
+	// logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
 	db, err := database.NewDatabase(
 		fmt.Sprintf(
