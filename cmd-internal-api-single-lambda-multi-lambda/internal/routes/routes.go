@@ -8,8 +8,31 @@ import (
 	"github.com/jha-captech/user-microservice/internal/service"
 )
 
-func RegisterRoutes(r *chi.Mux, logger *slog.Logger, svs *service.Service) {
-	r.Get("/api/health-check", handlers.HandleHealthCheck(logger))
+type Option func(*routerOptions)
+
+type routerOptions struct {
+	registerHealthRoute bool
+}
+
+// WithRegisterHealthRoute controls whether a healthcheck route will be registered. If `false` is
+// passed in or this function is not called, the default is `false`.
+func WithRegisterHealthRoute(registerHealthRoute bool) Option {
+	return func(options *routerOptions) {
+		options.registerHealthRoute = registerHealthRoute
+	}
+}
+
+func RegisterRoutes(r *chi.Mux, logger *slog.Logger, svs *service.User, opts ...Option) {
+	options := routerOptions{
+		registerHealthRoute: false,
+	}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	if options.registerHealthRoute {
+		r.Get("/api/health-check", handlers.HandleHealth(logger))
+	}
 
 	r.Get("/api/user", handlers.HandleListUsers(logger, svs))
 	r.Get("/api/user/{ID}", handlers.HandleFetchUser(logger, svs))

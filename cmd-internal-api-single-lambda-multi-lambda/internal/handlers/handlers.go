@@ -1,21 +1,8 @@
 package handlers
 
-// import (
-// 	"log/slog"
-//
-// 	"github.com/jha-captech/user-microservice/internal/service"
-// )
-//
-// // ── Handler Struct And Constructor ───────────────────────────────────────────────────────────────
-//
-// type Handler struct {
-// 	logger      *slog.Logger
-// 	userService service.Service
-// }
-//
-// func New(logger *slog.Logger, us service.Service) Handler {
-// 	return Handler{
-// 		logger:      logger,
-// 		userService: us,
-// 	}
-// }
+type sLogger interface {
+	Debug(msg string, args ...any)
+	Info(msg string, args ...any)
+	Warn(msg string, args ...any)
+	Error(msg string, args ...any)
+}

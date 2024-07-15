@@ -19,8 +19,12 @@ db_seed: db_up
 
 # App
 
+.PHONYL: swagger
+swagger:
+	swag init --generalInfo "./../../cmd/api/main.go" --dir "./internal/handlers" --output "./internal/swagger/docs" --parseInternal
+
 .PHONY: app_dev
-app_dev:
+app_dev: db_up swagger
 	go run ./cmd/api
 
 .PHONY: app

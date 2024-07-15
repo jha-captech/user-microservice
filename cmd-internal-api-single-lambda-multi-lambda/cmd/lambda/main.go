@@ -9,9 +9,9 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jha-captech/user-microservice/internal/config"
 	"github.com/jha-captech/user-microservice/internal/database"
-	"github.com/jha-captech/user-microservice/internal/middleware"
 	"github.com/jha-captech/user-microservice/internal/routes"
 	"github.com/jha-captech/user-microservice/internal/service"
 )
@@ -56,12 +56,12 @@ func run() error {
 
 	r := chi.NewRouter()
 
-	svs := service.New(db)
+	r.Use(middleware.Recoverer)
+
+	svs := service.NewUser(db)
 	routes.RegisterRoutes(r, logger, svs)
 
-	stack := middleware.CreateStack(middleware.RecoveryMiddleware(logger))
-
-	lambda.Start(httpadapter.New(stack(r)).ProxyWithContext)
+	lambda.Start(httpadapter.New(r).ProxyWithContext)
 
 	return nil
 }
