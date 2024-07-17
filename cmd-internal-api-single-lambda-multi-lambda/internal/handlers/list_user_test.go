@@ -25,11 +25,7 @@ func TestHandleListUsers(t *testing.T) {
 		{ID: 2, FirstName: "Jane", LastName: "Smith", Role: "User", UserID: 1002},
 	}
 
-	usersOut := make([]outputUser, len(users))
-	for i := 0; i < len(users); i++ {
-		userOut := mapOutput(users[i])
-		usersOut[i] = userOut
-	}
+	usersOut := mapMultipleOutput(users)
 
 	tests := map[string]struct {
 		mockCalled   bool

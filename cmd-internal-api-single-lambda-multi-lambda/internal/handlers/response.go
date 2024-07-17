@@ -25,6 +25,15 @@ func mapOutput(user models.User) outputUser {
 	}
 }
 
+func mapMultipleOutput(user []models.User) []outputUser {
+	usersOut := make([]outputUser, len(user))
+	for i := 0; i < len(user); i++ {
+		userOut := mapOutput(user[i])
+		usersOut[i] = userOut
+	}
+	return usersOut
+}
+
 type responseUser struct {
 	User outputUser `json:"user"`
 }

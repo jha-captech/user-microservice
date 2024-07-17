@@ -21,12 +21,7 @@ func NewUser(db *sql.DB) *User {
 // ListUsers returns a list of all User objects from the database.
 func (s User) ListUsers() ([]models.User, error) {
 	rows, err := s.database.Query(
-		`
-		SELECT 
-		    * 
-		FROM
-		    "users" 
-		`,
+		`SELECT * FROM "users"`,
 	)
 	if err != nil {
 		return []models.User{}, fmt.Errorf("[in ListUsers]:, %w", err)
