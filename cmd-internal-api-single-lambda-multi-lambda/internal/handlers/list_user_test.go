@@ -16,7 +16,7 @@ import (
 )
 
 func TestHandleListUsers(t *testing.T) {
-	mockService := new(serviceMock.MocklistUserServicer)
+	mockService := new(serviceMock.MockUserLister)
 	logger := slog.Default()
 	handler := HandleListUsers(logger, mockService)
 

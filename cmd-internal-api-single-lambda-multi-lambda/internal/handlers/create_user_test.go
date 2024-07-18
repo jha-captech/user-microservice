@@ -17,7 +17,7 @@ import (
 )
 
 func TestHandleCreateUser(t *testing.T) {
-	mockService := new(serviceMock.MockcreateUserServicer)
+	mockService := new(serviceMock.MockUserCreator)
 	logger := slog.Default()
 	handler := HandleCreateUser(logger, mockService)
 

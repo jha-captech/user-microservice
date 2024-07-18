@@ -17,7 +17,7 @@ import (
 )
 
 func TestHandleUpdateUser(t *testing.T) {
-	mockService := new(serviceMock.MockupdateUserServicer)
+	mockService := new(serviceMock.MockUserUpdater)
 	logger := slog.Default()
 	handler := HandleUpdateUser(logger, mockService)
 

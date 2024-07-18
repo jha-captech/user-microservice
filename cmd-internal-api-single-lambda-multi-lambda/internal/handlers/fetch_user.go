@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -11,7 +10,7 @@ import (
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type fetchUserServicer interface {
+type userFetcher interface {
 	FetchUser(ID int) (models.User, error)
 }
 
@@ -27,7 +26,7 @@ type fetchUserServicer interface {
 // @Failure		400			{object}	handlers.responseErr
 // @Failure		500			{object}	handlers.responseErr
 // @Router		/user/{ID}	[GET]
-func HandleFetchUser(logger *slog.Logger, service fetchUserServicer) http.HandlerFunc {
+func HandleFetchUser(logger sLogger, service userFetcher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate ID
 		idString := chi.URLParam(r, "ID")

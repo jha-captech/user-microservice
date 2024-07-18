@@ -6,7 +6,7 @@ import (
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type listUserServicer interface {
+type userLister interface {
 	ListUsers() ([]models.User, error)
 }
 
@@ -20,7 +20,7 @@ type listUserServicer interface {
 // @Success		200		{object}	handlers.responseUsers
 // @Failure		500		{object}	handlers.responseErr
 // @Router		/user	[GET]
-func HandleListUsers(logger sLogger, service listUserServicer) http.HandlerFunc {
+func HandleListUsers(logger sLogger, service userLister) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get values from database
 		users, err := service.ListUsers()

@@ -1,13 +1,12 @@
 package handlers
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type createUserServicer interface {
+type userCreator interface {
 	CreateUser(user models.User) (int, error)
 }
 
@@ -24,7 +23,7 @@ type createUserServicer interface {
 // @Failure		500			{object}	handlers.responseErr
 // @Failure		409			{object}	handlers.responseErr
 // @Router		/user		[POST]
-func HandleCreateUser(logger *slog.Logger, service createUserServicer) http.HandlerFunc {
+func HandleCreateUser(logger sLogger, service userCreator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate body as object
 		userIn, problems, err := decodeValidateBody[inputUser, models.User](r)

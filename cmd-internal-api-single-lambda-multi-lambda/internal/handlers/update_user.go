@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -9,7 +8,7 @@ import (
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type updateUserServicer interface {
+type userUpdater interface {
 	UpdateUser(ID int, user models.User) (models.User, error)
 }
 
@@ -26,7 +25,7 @@ type updateUserServicer interface {
 // @Failure		500			{object}	handlers.responseErr
 // @Failure		422			{object}	handlers.responseErr
 // @Router		/user/{ID}	[PUT]
-func HandleUpdateUser(logger *slog.Logger, service updateUserServicer) http.HandlerFunc {
+func HandleUpdateUser(logger sLogger, service userUpdater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate ID
 		idString := chi.URLParam(r, "ID")

@@ -17,7 +17,7 @@ import (
 )
 
 func TestHandleDeleteUser(t *testing.T) {
-	mockService := new(serviceMock.MockdeleteUserServicer)
+	mockService := new(serviceMock.MockUserDeleter)
 	logger := slog.Default()
 	handler := HandleDeleteUser(logger, mockService)
 

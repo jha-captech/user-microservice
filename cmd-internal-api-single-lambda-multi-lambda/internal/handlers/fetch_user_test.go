@@ -28,7 +28,7 @@ func toJSONString(data any) string {
 }
 
 func TestHandleFetchUser(t *testing.T) {
-	mockService := new(serviceMock.MockfetchUserServicer)
+	mockService := new(serviceMock.MockUserFetcher)
 	logger := slog.Default()
 	handler := HandleFetchUser(logger, mockService)
 

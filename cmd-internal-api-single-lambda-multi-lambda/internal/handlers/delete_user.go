@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -11,7 +10,7 @@ import (
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type deleteUserServicer interface {
+type userDeleter interface {
 	FetchUser(ID int) (models.User, error)
 	DeleteUser(ID int) error
 }
@@ -28,7 +27,7 @@ type deleteUserServicer interface {
 // @Failure		400			{object}	handlers.responseErr
 // @Failure		500			{object}	handlers.responseErr
 // @Router		/user/{ID}	[DELETE]
-func HandleDeleteUser(logger *slog.Logger, service deleteUserServicer) http.HandlerFunc {
+func HandleDeleteUser(logger sLogger, service userDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get and validate ID
 		idString := chi.URLParam(r, "ID")

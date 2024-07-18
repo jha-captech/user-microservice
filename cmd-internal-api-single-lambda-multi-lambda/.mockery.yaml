@@ -4,13 +4,13 @@ packages:
     config:
       filename: "{{.InterfaceName | snakecase }}.go"
       dir: "{{.InterfaceDir}}/mock"
-      mockname: "Mock{{.InterfaceName}}"
+      mockname: "Mock{{.InterfaceName | camelcase | firstUpper }}"
       outpkg: "mock"
       inpackage: false
     interfaces:
-      createUserServicer:
-      deleteUserServicer:
-      fetchUserServicer:
-      listUserServicer:
-      updateUserServicer:
+      userCreator:
+      userDeleter:
+      userFetcher:
+      userLister:
+      userUpdater:
       sLogger:

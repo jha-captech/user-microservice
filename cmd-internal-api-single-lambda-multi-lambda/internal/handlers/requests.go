@@ -8,19 +8,6 @@ import (
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type Validator interface {
-	Valid() (problems map[string]string)
-}
-
-type Mapper[T any] interface {
-	MapTo() (T, error)
-}
-
-type ValidatorMapper[T any] interface {
-	Validator
-	Mapper[T]
-}
-
 type inputUser struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
@@ -65,6 +52,19 @@ func (user inputUser) Valid() map[string]string {
 	return problems
 }
 
+type Validator interface {
+	Valid() (problems map[string]string)
+}
+
+type Mapper[T any] interface {
+	MapTo() (T, error)
+}
+
+type ValidatorMapper[T any] interface {
+	Validator
+	Mapper[T]
+}
+
 func decodeValidateBody[I ValidatorMapper[O], O any](r *http.Request) (O, map[string]string, error) {
 	var v I
 
@@ -75,7 +75,9 @@ func decodeValidateBody[I ValidatorMapper[O], O any](r *http.Request) (O, map[st
 
 	// validate
 	if problems := v.Valid(); len(problems) > 0 {
-		return *new(O), problems, fmt.Errorf("[in decodeValidateBody] invalid %T: %d problems", v, len(problems))
+		return *new(O), problems, fmt.Errorf(
+			"[in decodeValidateBody] invalid %T: %d problems", v, len(problems),
+		)
 	}
 
 	// map to return type

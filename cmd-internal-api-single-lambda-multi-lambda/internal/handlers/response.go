@@ -8,11 +8,11 @@ import (
 )
 
 type outputUser struct {
-	ID        int    `json:"id,omitempty"`
-	FirstName string `json:"first_name,omitempty"`
-	LastName  string `json:"last_name,omitempty"`
-	Role      string `json:"role,omitempty"`
-	UserID    int    `json:"user_id,omitempty"`
+	ID        int    `json:"id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Role      string `json:"role"`
+	UserID    int    `json:"user_id"`
 }
 
 func mapOutput(user models.User) outputUser {
@@ -55,7 +55,7 @@ type responseErr struct {
 	ValidationErrors map[string]string `json:"validation_errors,omitempty"`
 }
 
-// encodeResponse encodes a struct of type T as a JSON response.
+// encodeResponse encodes data as a JSON response.
 func encodeResponse(w http.ResponseWriter, logger sLogger, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
