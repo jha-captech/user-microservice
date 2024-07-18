@@ -114,7 +114,7 @@ func run() error {
 		}()
 
 		if err = serverInstance.Shutdown(shutdownCtx); err != nil {
-			log.Fatal(fmt.Sprintf("Error shutting down server. err: %v", err))
+			log.Fatalf("Error shutting down server. err: %v", err)
 		}
 		serverStopCtx()
 	}()
