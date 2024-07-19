@@ -102,9 +102,12 @@ func run() error {
 		fmt.Println()
 		logger.Info("Shutdown signal received")
 
-		shutdownCtx, _ := context.WithTimeout(
+		shutdownCtx, err := context.WithTimeout(
 			serverCtx, time.Duration(cfg.HTTP.ShutdownGracePeriod)*time.Second,
 		)
+		if err != nil {
+			log.Fatalf("Error creating context.WithTimeout. err: %v", err)
+		}
 
 		go func() {
 			<-shutdownCtx.Done()
@@ -113,7 +116,7 @@ func run() error {
 			}
 		}()
 
-		if err = serverInstance.Shutdown(shutdownCtx); err != nil {
+		if err := serverInstance.Shutdown(shutdownCtx); err != nil {
 			log.Fatalf("Error shutting down server. err: %v", err)
 		}
 		serverStopCtx()

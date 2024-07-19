@@ -72,6 +72,7 @@ func (s *testSuit) TestListUsers() {
 			assert.Equal(t, tc.expectedReturn, actualReturn, "returned data does not match")
 
 			err = s.dbMock.ExpectationsWereMet()
+			assert.NoError(t, err)
 		})
 	}
 }
@@ -118,6 +119,7 @@ func (s *testSuit) TestFetchUser() {
 			assert.Equal(t, tc.expectedReturn, actualReturn, "returned data does not match")
 
 			err = s.dbMock.ExpectationsWereMet()
+			assert.NoError(t, err)
 		})
 	}
 }
@@ -181,6 +183,7 @@ func (s *testSuit) TestUpdateUser() {
 			assert.Equal(t, tc.expectedReturn, actualReturn, "returned data does not match")
 
 			err = s.dbMock.ExpectationsWereMet()
+			assert.NoError(t, err)
 		})
 	}
 }
@@ -226,6 +229,7 @@ func (s *testSuit) TestCreateUser() {
 			assert.Equal(t, tc.expectedReturn, actualReturn, "returned data does not match")
 
 			err = s.dbMock.ExpectationsWereMet()
+			assert.NoError(t, err)
 		})
 	}
 }
@@ -265,6 +269,7 @@ func (s *testSuit) TestDeleteUser() {
 			assert.Equal(t, tc.expectedError, err, "errors did not match")
 
 			err = s.dbMock.ExpectationsWereMet()
+			assert.NoError(t, err)
 		})
 	}
 }
