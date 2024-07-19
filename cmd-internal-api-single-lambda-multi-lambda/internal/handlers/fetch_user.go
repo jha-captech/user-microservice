@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 )
 
 type userFetcher interface {
-	FetchUser(ID int) (models.User, error)
+	FetchUser(ctx context.Context, ID int) (models.User, error)
 }
 
 // HandleFetchUser is a Handler that returns a single user by ID.
@@ -28,6 +29,9 @@ type userFetcher interface {
 // @Router		/user/{ID}	[GET]
 func HandleFetchUser(logger sLogger, service userFetcher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// setup
+		ctx := r.Context()
+
 		// get and validate ID
 		idString := chi.URLParam(r, "ID")
 		ID, err := strconv.Atoi(idString)
@@ -40,7 +44,7 @@ func HandleFetchUser(logger sLogger, service userFetcher) http.HandlerFunc {
 		}
 
 		// get values from database
-		user, err := service.FetchUser(ID)
+		user, err := service.FetchUser(ctx, ID)
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):

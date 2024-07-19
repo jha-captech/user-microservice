@@ -66,22 +66,22 @@ type ValidatorMapper[T any] interface {
 }
 
 func decodeValidateBody[I ValidatorMapper[O], O any](r *http.Request) (O, map[string]string, error) {
-	var v I
+	var inputModel I
 
 	// decode to JSON
-	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&inputModel); err != nil {
 		return *new(O), nil, fmt.Errorf("[in decodeValidateBody] decode json: %w", err)
 	}
 
 	// validate
-	if problems := v.Valid(); len(problems) > 0 {
+	if problems := inputModel.Valid(); len(problems) > 0 {
 		return *new(O), problems, fmt.Errorf(
-			"[in decodeValidateBody] invalid %T: %d problems", v, len(problems),
+			"[in decodeValidateBody] invalid %T: %d problems", inputModel, len(problems),
 		)
 	}
 
 	// map to return type
-	data, err := v.MapTo()
+	data, err := inputModel.MapTo()
 	if err != nil {
 		return *new(O), nil, fmt.Errorf("[in decodeValidateBody] map to %T: %w", *new(O), err)
 	}

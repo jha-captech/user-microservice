@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
 type userLister interface {
-	ListUsers() ([]models.User, error)
+	ListUsers(ctx context.Context) ([]models.User, error)
 }
 
 // HandleListUsers is a Handler that returns a list of all users.
@@ -22,8 +23,11 @@ type userLister interface {
 // @Router		/user	[GET]
 func HandleListUsers(logger sLogger, service userLister) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// setup
+		ctx := r.Context()
+
 		// get values from database
-		users, err := service.ListUsers()
+		users, err := service.ListUsers(ctx)
 		if err != nil {
 			logger.Error("error getting all locations", "error", err)
 			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{

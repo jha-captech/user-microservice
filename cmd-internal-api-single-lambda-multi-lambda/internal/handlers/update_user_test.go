@@ -71,20 +71,21 @@ func TestHandleUpdateUser(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			if tc.mockCalled {
-				mockService.
-					On("UpdateUser", tc.mockInput...).
-					Return(tc.mockOutput...).
-					Once()
-			}
-
 			req, err := http.NewRequest(http.MethodPut, "/api/user/"+tc.requestIDParam, strings.NewReader(tc.requestBody))
 			assert.NoError(t, err)
 
 			// Add chi URLParam
 			rctx := chi.NewRouteContext()
 			rctx.URLParams.Add("ID", tc.requestIDParam)
-			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+			ctx := context.WithValue(req.Context(), chi.RouteCtxKey, rctx)
+			req = req.WithContext(ctx)
+
+			if tc.mockCalled {
+				mockService.
+					On("UpdateUser", append([]any{ctx}, tc.mockInput...)...).
+					Return(tc.mockOutput...).
+					Once()
+			}
 
 			rr := httptest.NewRecorder()
 			handler.ServeHTTP(rr, req)

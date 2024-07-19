@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -57,6 +59,12 @@ func (s *testSuit) TestListUsers() {
 			expectedReturn: users,
 			expectedError:  nil,
 		},
+		"Error getting users": {
+			mockReturn:     &sqlmock.Rows{},
+			mockReturnErr:  errors.New("test"),
+			expectedReturn: []models.User{},
+			expectedError:  fmt.Errorf("[in ListUsers]: %w", errors.New("test")),
+		},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -66,7 +74,7 @@ func (s *testSuit) TestListUsers() {
 				WillReturnRows(tc.mockReturn).
 				WillReturnError(tc.mockReturnErr)
 
-			actualReturn, err := s.service.ListUsers()
+			actualReturn, err := s.service.ListUsers(context.Background())
 
 			assert.Equal(t, tc.expectedError, err, "errors did not match")
 			assert.Equal(t, tc.expectedReturn, actualReturn, "returned data does not match")
@@ -101,7 +109,7 @@ func (s *testSuit) TestFetchUser() {
 			mockReturnErr:  sql.ErrNoRows,
 			inputID:        0,
 			expectedReturn: models.User{},
-			expectedError:  fmt.Errorf("[in FetchUser]:, %w", sql.ErrNoRows),
+			expectedError:  fmt.Errorf("[in FetchUser]: %w", sql.ErrNoRows),
 		},
 	}
 	for name, tc := range testCases {
@@ -113,7 +121,7 @@ func (s *testSuit) TestFetchUser() {
 				WillReturnRows(tc.mockReturn).
 				WillReturnError(tc.mockReturnErr)
 
-			actualReturn, err := s.service.FetchUser(tc.inputID)
+			actualReturn, err := s.service.FetchUser(context.Background(), tc.inputID)
 
 			assert.Equal(t, tc.expectedError, err, "errors did not match")
 			assert.Equal(t, tc.expectedReturn, actualReturn, "returned data does not match")
@@ -132,7 +140,7 @@ func (s *testSuit) TestUpdateUser() {
 
 	testCases := map[string]struct {
 		mockInputArgs  []driver.Value
-		mockReturn     *sqlmock.Rows
+		mockReturn     driver.Result
 		mockReturnErr  error
 		inputID        int
 		inputUser      models.User
@@ -140,22 +148,22 @@ func (s *testSuit) TestUpdateUser() {
 		expectedError  error
 	}{
 		"user updated by ID": {
-			mockInputArgs:  []driver.Value{userIn.FirstName, userIn.LastName, userIn.Role, userIn.UserID, userIn.ID},
-			mockReturn:     mustStructsToRows([]models.User{userIn}),
+			mockInputArgs:  []driver.Value{userIn.FirstName, userIn.LastName, userIn.Role, userIn.UserID, int(userOut.ID)},
+			mockReturn:     sqlmock.NewResult(1, 1),
 			mockReturnErr:  nil,
-			inputID:        int(userIn.ID),
+			inputID:        int(userOut.ID),
 			inputUser:      userIn,
 			expectedReturn: userOut,
 			expectedError:  nil,
 		},
 		"Error updating user": {
-			mockInputArgs:  []driver.Value{},
-			mockReturn:     &sqlmock.Rows{},
-			mockReturnErr:  sql.ErrNoRows,
+			mockInputArgs:  []driver.Value{userIn.FirstName, userIn.LastName, userIn.Role, userIn.UserID, 0},
+			mockReturn:     nil,
+			mockReturnErr:  errors.New("test"),
 			inputID:        0,
 			inputUser:      userIn,
 			expectedReturn: models.User{},
-			expectedError:  fmt.Errorf("[in FetchUser]:, %w", sql.ErrNoRows),
+			expectedError:  fmt.Errorf("[in UpdateUser]: %w", errors.New("test")),
 		},
 	}
 	for name, tc := range testCases {
@@ -172,12 +180,12 @@ func (s *testSuit) TestUpdateUser() {
 					"id" = $5
 			`
 			s.dbMock.
-				ExpectQuery(regexp.QuoteMeta(exp)).
+				ExpectExec(regexp.QuoteMeta(exp)).
 				WithArgs(tc.mockInputArgs...).
-				WillReturnRows(tc.mockReturn).
+				WillReturnResult(tc.mockReturn).
 				WillReturnError(tc.mockReturnErr)
 
-			actualReturn, err := s.service.UpdateUser(tc.inputID, tc.inputUser)
+			actualReturn, err := s.service.UpdateUser(context.Background(), tc.inputID, tc.inputUser)
 
 			assert.Equal(t, tc.expectedError, err, "errors did not match")
 			assert.Equal(t, tc.expectedReturn, actualReturn, "returned data does not match")
@@ -223,7 +231,7 @@ func (s *testSuit) TestCreateUser() {
 				WillReturnRows(tc.mockReturn).
 				WillReturnError(tc.mockReturnErr)
 
-			actualReturn, err := s.service.CreateUser(tc.inputUser)
+			actualReturn, err := s.service.CreateUser(context.Background(), tc.inputUser)
 
 			assert.Equal(t, tc.expectedError, err, "errors did not match")
 			assert.Equal(t, tc.expectedReturn, actualReturn, "returned data does not match")
@@ -264,7 +272,7 @@ func (s *testSuit) TestDeleteUser() {
 				WillReturnResult(tc.mockReturn).
 				WillReturnError(tc.mockReturnErr)
 
-			err := s.service.DeleteUser(tc.inputID)
+			err := s.service.DeleteUser(context.Background(), tc.inputID)
 
 			assert.Equal(t, tc.expectedError, err, "errors did not match")
 

@@ -80,26 +80,28 @@ func TestHandleDeleteUser(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			if tc.mockFetchCalled {
-				mockService.
-					On("FetchUser", tc.mockFetchInput...).
-					Return(tc.mockFetchOutput...).
-					Once()
-			}
-			if tc.mockDeleteCalled {
-				mockService.
-					On("DeleteUser", tc.mockDeleteInput...).
-					Return(tc.mockDeleteOutput...).
-					Once()
-			}
-
 			req, err := http.NewRequest(http.MethodDelete, "/api/user/"+tc.urlParam, nil)
 			assert.NoError(t, err)
 
 			// Add chi URLParam
 			rctx := chi.NewRouteContext()
 			rctx.URLParams.Add("ID", tc.urlParam)
-			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+			ctx := context.WithValue(req.Context(), chi.RouteCtxKey, rctx)
+			req = req.WithContext(ctx)
+
+			// set mock expectations and context
+			if tc.mockFetchCalled {
+				mockService.
+					On("FetchUser", append([]any{ctx}, tc.mockFetchInput...)...).
+					Return(tc.mockFetchOutput...).
+					Once()
+			}
+			if tc.mockDeleteCalled {
+				mockService.
+					On("DeleteUser", append([]any{ctx}, tc.mockDeleteInput...)...).
+					Return(tc.mockDeleteOutput...).
+					Once()
+			}
 
 			rr := httptest.NewRecorder()
 			handler.ServeHTTP(rr, req)

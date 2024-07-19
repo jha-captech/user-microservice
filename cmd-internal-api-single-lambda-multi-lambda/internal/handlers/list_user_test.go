@@ -55,19 +55,20 @@ func TestHandleListUsers(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			if tc.mockCalled {
-				mockService.
-					On("ListUsers").
-					Return(tc.mockOutput...).
-					Once()
-			}
-
 			req, err := http.NewRequest(http.MethodGet, "/api/user", nil)
 			assert.NoError(t, err)
 
 			// Add chi URLParam
 			rctx := chi.NewRouteContext()
-			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+			ctx := context.WithValue(req.Context(), chi.RouteCtxKey, rctx)
+			req = req.WithContext(ctx)
+
+			if tc.mockCalled {
+				mockService.
+					On("ListUsers", ctx).
+					Return(tc.mockOutput...).
+					Once()
+			}
 
 			rr := httptest.NewRecorder()
 			handler.ServeHTTP(rr, req)

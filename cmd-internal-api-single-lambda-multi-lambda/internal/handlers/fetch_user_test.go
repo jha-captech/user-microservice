@@ -87,20 +87,21 @@ func TestHandleFetchUser(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			if tc.mockCalled {
-				mockService.
-					On("FetchUser", tc.mockInput...).
-					Return(tc.mockOutput...).
-					Once()
-			}
-
 			req, err := http.NewRequest(http.MethodGet, "/api/user/"+tc.requestIDParam, nil)
 			assert.NoError(t, err)
 
 			// Add chi URLParam
 			rctx := chi.NewRouteContext()
 			rctx.URLParams.Add("ID", tc.requestIDParam)
-			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+			ctx := context.WithValue(req.Context(), chi.RouteCtxKey, rctx)
+			req = req.WithContext(ctx)
+
+			if tc.mockCalled {
+				mockService.
+					On("FetchUser", append([]any{ctx}, tc.mockInput...)...).
+					Return(tc.mockOutput...).
+					Once()
+			}
 
 			rr := httptest.NewRecorder()
 			handler.ServeHTTP(rr, req)
