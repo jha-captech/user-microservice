@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jha-captech/user-microservice/internal/log"
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
@@ -28,7 +29,7 @@ type userDeleter interface {
 // @Failure		400			{object}	handlers.responseErr
 // @Failure		500			{object}	handlers.responseErr
 // @Router		/user/{ID}	[DELETE]
-func HandleDeleteUser(logger sLogger, service userDeleter) http.HandlerFunc {
+func HandleDeleteUser(logger log.Logger, service userDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// setup
 		ctx := r.Context()

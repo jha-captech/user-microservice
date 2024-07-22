@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jha-captech/user-microservice/internal/log"
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
@@ -26,7 +27,7 @@ type userUpdater interface {
 // @Failure		500			{object}	handlers.responseErr
 // @Failure		422			{object}	handlers.responseErr
 // @Router		/user/{ID}	[PUT]
-func HandleUpdateUser(logger sLogger, service userUpdater) http.HandlerFunc {
+func HandleUpdateUser(logger log.Logger, service userUpdater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// setup
 		ctx := r.Context()

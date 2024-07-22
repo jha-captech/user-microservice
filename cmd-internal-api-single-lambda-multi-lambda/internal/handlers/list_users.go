@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/jha-captech/user-microservice/internal/log"
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
@@ -21,7 +22,7 @@ type userLister interface {
 // @Success		200		{object}	handlers.responseUsers
 // @Failure		500		{object}	handlers.responseErr
 // @Router		/user	[GET]
-func HandleListUsers(logger sLogger, service userLister) http.HandlerFunc {
+func HandleListUsers(logger log.Logger, service userLister) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// setup
 		ctx := r.Context()

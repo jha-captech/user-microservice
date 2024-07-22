@@ -26,7 +26,7 @@ func run() error {
 	}
 
 	logger := slog.Default()
-	// logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
+	// log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
 	db, err := database.NewDatabase(
 		fmt.Sprintf(

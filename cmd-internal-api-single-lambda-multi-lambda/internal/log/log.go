@@ -1,6 +1,6 @@
-package handlers
+package log
 
-type sLogger interface {
+type Logger interface {
 	Debug(msg string, args ...any)
 	Info(msg string, args ...any)
 	Warn(msg string, args ...any)

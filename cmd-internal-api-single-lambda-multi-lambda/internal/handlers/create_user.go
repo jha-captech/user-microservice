@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/jha-captech/user-microservice/internal/log"
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
@@ -24,7 +25,7 @@ type userCreator interface {
 // @Failure		500			{object}	handlers.responseErr
 // @Failure		409			{object}	handlers.responseErr
 // @Router		/user		[POST]
-func HandleCreateUser(logger sLogger, service userCreator) http.HandlerFunc {
+func HandleCreateUser(logger log.Logger, service userCreator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// setup
 		ctx := r.Context()

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/jha-captech/user-microservice/internal/log"
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
@@ -57,7 +58,7 @@ type responseErr struct {
 }
 
 // encodeResponse encodes data as a JSON response.
-func encodeResponse(w http.ResponseWriter, logger sLogger, status int, data any) {
+func encodeResponse(w http.ResponseWriter, logger log.Logger, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(data); err != nil {

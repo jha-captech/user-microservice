@@ -1,78 +1,99 @@
 package database
 
 import (
+	"context"
 	"database/sql"
-	"errors"
 	"fmt"
+	"math"
+	"math/rand"
 	"time"
 
+	"github.com/jha-captech/user-microservice/internal/log"
 	_ "github.com/lib/pq"
 )
 
-type sLogger interface {
-	Debug(msg string, args ...any)
-	Info(msg string, args ...any)
-	Warn(msg string, args ...any)
-	Error(msg string, args ...any)
-}
-
 // New Establish Session connection and migrate tables before
 // returning database.database struct.
-func New(connectionString string, logger sLogger, retryCount int) (*sql.DB, error) {
+func New(ctx context.Context, connectionString string, logger log.Logger, retryDuration time.Duration) (*sql.DB, error) {
 	logger.Info("Attempting to connect to database")
-	db, err := retryWithReturn(retryCount, 100*time.Millisecond, func() (*sql.DB, error) {
+	retryCount := 0
+	db, err := retryResult(ctx, retryDuration, func() (*sql.DB, error) {
+		retryCount++
 		return sql.Open("postgres", connectionString)
 	})
 	if err != nil {
 		return nil, fmt.Errorf(
-			"[in New] Failed to connect to database after %d attempts: %w",
+			"[in New] Failed to connect to database with retry duration of %s and %d attempts: %w",
+			retryDuration,
 			retryCount,
 			err,
 		)
 	}
 
+	logger.Info("Successfully connected to database", "retry count", retryCount)
+
 	logger.Info("Attempting to ping database")
-	err = retry(retryCount, 500*time.Millisecond, func() error {
+
+	retryCount = 0
+	err = retry(ctx, retryDuration, func() error {
+		retryCount++
 		return db.Ping()
 	})
 	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf(
-			"[in New] Failed to ping database after %d attempts: %w",
+			"[in New] Failed to ping database with retry duration of %s and %d attempts: %w",
+			retryDuration,
 			retryCount,
 			err,
 		)
 	}
+	logger.Info("Successfully pinged database", "retry count", retryCount)
 
 	logger.Info("database connection established")
 
 	return db, nil
 }
 
-// retry will retry a given function n times with a wait of a given duration between each retry attempt.
-func retry(retryCount int, waitTime time.Duration, fn func() error) error {
-	_, err := retryWithReturn(retryCount, waitTime, func() (any, error) {
-		return nil, fn()
+func retry(ctx context.Context, maxDuration time.Duration, retryFunc func() error) error {
+	_, err := retryResult(ctx, maxDuration, func() (any, error) {
+		return nil, retryFunc()
 	})
 	return err
 }
 
-// retryWithReturn will retry a given function n times with a wait of a given duration between each
-// retry attempt. retryWithReturn is intended for functions where a return values is needed.
-func retryWithReturn[T any](retryCount int, waitTime time.Duration, fn func() (T, error)) (T, error) {
-	if retryCount < 1 {
-		return *new(T), errors.New("retryCount of less than 1 is not permitted")
-	}
-	for i := 0; i < retryCount; i++ {
-		t, err := fn()
-		if err != nil {
-			if i == retryCount-1 {
-				return t, err
+func retryResult[T any](ctx context.Context, maxDuration time.Duration, retryFunc func() (T, error)) (T, error) {
+	var (
+		returnData T
+		err        error
+	)
+	const maxBackoffMilliseconds = 2_000.0
+
+	ctx, cancelFunc := context.WithTimeout(ctx, maxDuration)
+	defer cancelFunc()
+
+	go func() {
+		counter := 1.0
+		for {
+			counter++
+			returnData, err = retryFunc()
+			if err != nil {
+				waitMilliseconds := math.Min(
+					math.Pow(counter, 2)+float64(rand.Intn(10)),
+					maxBackoffMilliseconds,
+				)
+				time.Sleep(time.Duration(waitMilliseconds) * time.Millisecond)
+				continue
 			}
-			time.Sleep(waitTime)
-			continue
+			cancelFunc()
+			return
 		}
-		return t, nil
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return returnData, err
+		}
 	}
-	return *new(T), errors.New("default return reached in retryWithReturn")
 }

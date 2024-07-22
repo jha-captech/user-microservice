@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jha-captech/user-microservice/internal/log"
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
@@ -27,7 +28,7 @@ type userFetcher interface {
 // @Failure		400			{object}	handlers.responseErr
 // @Failure		500			{object}	handlers.responseErr
 // @Router		/user/{ID}	[GET]
-func HandleFetchUser(logger sLogger, service userFetcher) http.HandlerFunc {
+func HandleFetchUser(logger log.Logger, service userFetcher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// setup
 		ctx := r.Context()

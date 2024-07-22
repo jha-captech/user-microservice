@@ -24,12 +24,13 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
+	ctx := context.Background()
+	if err := run(ctx); err != nil {
 		log.Fatalf("Startup failed. err: %v", err)
 	}
 }
 
-func run() error {
+func run(ctx context.Context) error {
 	// Setup
 	cfg, err := config.New()
 	if err != nil {
@@ -44,6 +45,7 @@ func run() error {
 	})
 
 	db, err := database.New(
+		ctx,
 		fmt.Sprintf(
 			"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 			cfg.Database.Host,
@@ -53,7 +55,7 @@ func run() error {
 			cfg.Database.Port,
 		),
 		logger,
-		cfg.Database.ConnectionRetry,
+		time.Duration(cfg.Database.RetryDuration)*time.Second,
 	)
 	if err != nil {
 		return fmt.Errorf("[in run]: %w", err)
@@ -65,21 +67,21 @@ func run() error {
 		}
 	}()
 
-	r := chi.NewRouter()
+	router := chi.NewRouter()
 
-	r.Use(httplog.RequestLogger(logger))
-	r.Use(middleware.Recoverer)
-	r.Use(cors.Handler(cors.Options{
+	router.Use(httplog.RequestLogger(logger))
+	router.Use(middleware.Recoverer)
+	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{"GET", "PUT", "POST", "DELETE"},
 		MaxAge:         300,
 	}))
 
 	svs := service.NewUser(db)
-	routes.RegisterRoutes(r, logger, svs, routes.WithRegisterHealthRoute(true))
+	routes.RegisterRoutes(router, logger, svs, routes.WithRegisterHealthRoute(true))
 
 	if cfg.UseSwagger {
-		swagger.RunSwagger(r, logger, cfg.HTTP.Domain+cfg.HTTP.Port)
+		swagger.RunSwagger(router, logger, cfg.HTTP.Domain+cfg.HTTP.Port)
 	}
 
 	serverInstance := &http.Server{
@@ -88,7 +90,7 @@ func run() error {
 		ReadHeaderTimeout: 500 * time.Millisecond,
 		ReadTimeout:       500 * time.Millisecond,
 		WriteTimeout:      500 * time.Millisecond,
-		Handler:           r,
+		Handler:           router,
 	}
 
 	// Graceful shutdown

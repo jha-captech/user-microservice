@@ -26,7 +26,7 @@ func WithRegisterHealthRoute(registerHealthRoute bool) Option {
 	}
 }
 
-func RegisterRoutes(r *chi.Mux, logger sLogger, svs *service.User, opts ...Option) {
+func RegisterRoutes(router *chi.Mux, logger sLogger, svs *service.User, opts ...Option) {
 	options := routerOptions{
 		registerHealthRoute: false,
 	}
@@ -35,12 +35,12 @@ func RegisterRoutes(r *chi.Mux, logger sLogger, svs *service.User, opts ...Optio
 	}
 
 	if options.registerHealthRoute {
-		r.Get("/api/health-check", handlers.HandleHealth(logger))
+		router.Get("/api/health-check", handlers.HandleHealth(logger))
 	}
 
-	r.Get("/api/user", handlers.HandleListUsers(logger, svs))
-	r.Get("/api/user/{ID}", handlers.HandleFetchUser(logger, svs))
-	r.Put("/api/user/{ID}", handlers.HandleUpdateUser(logger, svs))
-	r.Post("/api/user", handlers.HandleCreateUser(logger, svs))
-	r.Delete("/api/user/{ID}", handlers.HandleDeleteUser(logger, svs))
+	router.Get("/api/user", handlers.HandleListUsers(logger, svs))
+	router.Get("/api/user/{ID}", handlers.HandleFetchUser(logger, svs))
+	router.Put("/api/user/{ID}", handlers.HandleUpdateUser(logger, svs))
+	router.Post("/api/user", handlers.HandleCreateUser(logger, svs))
+	router.Delete("/api/user/{ID}", handlers.HandleDeleteUser(logger, svs))
 }
