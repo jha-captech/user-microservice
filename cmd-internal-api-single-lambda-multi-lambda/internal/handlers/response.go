@@ -31,6 +31,7 @@ func mapMultipleOutput(user []models.User) []outputUser {
 		userOut := mapOutput(user[i])
 		usersOut[i] = userOut
 	}
+
 	return usersOut
 }
 
