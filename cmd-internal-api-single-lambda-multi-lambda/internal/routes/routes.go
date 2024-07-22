@@ -1,13 +1,17 @@
 package routes
 
 import (
-	"log/slog"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/jha-captech/user-microservice/internal/handlers"
 	"github.com/jha-captech/user-microservice/internal/service"
 )
 
+type sLogger interface {
+	Debug(msg string, args ...any)
+	Info(msg string, args ...any)
+	Warn(msg string, args ...any)
+	Error(msg string, args ...any)
+}
 type Option func(*routerOptions)
 
 type routerOptions struct {
@@ -22,7 +26,7 @@ func WithRegisterHealthRoute(registerHealthRoute bool) Option {
 	}
 }
 
-func RegisterRoutes(r *chi.Mux, logger *slog.Logger, svs *service.User, opts ...Option) {
+func RegisterRoutes(r *chi.Mux, logger sLogger, svs *service.User, opts ...Option) {
 	options := routerOptions{
 		registerHealthRoute: false,
 	}

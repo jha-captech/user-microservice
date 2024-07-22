@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"log/slog"
+	"context"
 	"net/http"
 	"strconv"
 
@@ -9,8 +9,8 @@ import (
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type updateUserServicer interface {
-	UpdateUser(ID int, user models.User) (models.User, error)
+type userUpdater interface {
+	UpdateUser(ctx context.Context, ID int, user models.User) (models.User, error)
 }
 
 // HandleUpdateUser is a Handler that updates a user based on a user object from the request body.
@@ -26,8 +26,11 @@ type updateUserServicer interface {
 // @Failure		500			{object}	handlers.responseErr
 // @Failure		422			{object}	handlers.responseErr
 // @Router		/user/{ID}	[PUT]
-func HandleUpdateUser(logger *slog.Logger, service updateUserServicer) http.HandlerFunc {
+func HandleUpdateUser(logger sLogger, service userUpdater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// setup
+		ctx := r.Context()
+
 		// get and validate ID
 		idString := chi.URLParam(r, "ID")
 		ID, err := strconv.Atoi(idString)
@@ -58,11 +61,11 @@ func HandleUpdateUser(logger *slog.Logger, service updateUserServicer) http.Hand
 		}
 
 		// update object in database
-		user, err := service.UpdateUser(ID, userIn)
+		user, err := service.UpdateUser(ctx, ID, userIn)
 		if err != nil {
 			logger.Error("error updating object in database", "error", err)
 			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
-				Error: "Error updating data",
+				Error: "Error updating object",
 			})
 			return
 		}

@@ -8,24 +8,11 @@ import (
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type Validator interface {
-	Valid() (problems map[string]string)
-}
-
-type Mapper[T any] interface {
-	MapTo() (T, error)
-}
-
-type ValidatorMapper[T any] interface {
-	Validator
-	Mapper[T]
-}
-
 type inputUser struct {
-	FirstName string `json:"first_name,omitempty"`
-	LastName  string `json:"last_name,omitempty"`
-	Role      string `json:"role,omitempty"`
-	UserID    int    `json:"user_id,omitempty"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Role      string `json:"role"`
+	UserID    int    `json:"user_id"`
 }
 
 func (user inputUser) MapTo() (models.User, error) {
@@ -40,35 +27,63 @@ func (user inputUser) MapTo() (models.User, error) {
 func (user inputUser) Valid() map[string]string {
 	problems := make(map[string]string)
 
-	// validate UserID greater than 0
-	if user.UserID < 1 {
-		problems["UserID"] = "UserID must be more than 0"
+	// first name must not be blank
+	if user.FirstName == "" {
+		problems["first_name"] = "must not be blank"
+	}
+
+	// last name must not be blank
+	if user.LastName == "" {
+		problems["first_name"] = "must not be blank"
 	}
 
 	// validate role is `Customer` or `Employee`
-	if user.Role != "Customer" && user.Role != "Employee" {
-		problems["Role"] = "Role must be 'Customer' or 'Employee'"
+	if user.Role == "" {
+		problems["role"] = "must not be blank"
+	} else if user.Role != "Customer" && user.Role != "Employee" {
+		problems["role"] = "must be 'Customer' or 'Employee'"
+	}
+
+	// validate UserID greater than 0
+	if user.UserID < 1 {
+		problems["user_id"] = "must be more than 0"
 	}
 
 	return problems
 }
 
+type Validator interface {
+	Valid() (problems map[string]string)
+}
+
+type Mapper[T any] interface {
+	MapTo() (T, error)
+}
+
+type ValidatorMapper[T any] interface {
+	Validator
+	Mapper[T]
+}
+
 func decodeValidateBody[I ValidatorMapper[O], O any](r *http.Request) (O, map[string]string, error) {
-	var v I
+	var inputModel I
 
 	// decode to JSON
-	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
-		return *new(O), nil, fmt.Errorf("decode json: %w", err)
+	if err := json.NewDecoder(r.Body).Decode(&inputModel); err != nil {
+		return *new(O), nil, fmt.Errorf("[in decodeValidateBody] decode json: %w", err)
 	}
 
 	// validate
-	if problems := v.Valid(); len(problems) > 0 {
-		return *new(O), problems, fmt.Errorf("invalid %I: %d problems", v, len(problems))
+	if problems := inputModel.Valid(); len(problems) > 0 {
+		return *new(O), problems, fmt.Errorf(
+			"[in decodeValidateBody] invalid %T: %d problems", inputModel, len(problems),
+		)
 	}
 
 	// map to return type
-	data, err := v.MapTo()
+	data, err := inputModel.MapTo()
 	if err != nil {
+		return *new(O), nil, fmt.Errorf("[in decodeValidateBody] map to %T: %w", *new(O), err)
 	}
 
 	return data, nil, nil

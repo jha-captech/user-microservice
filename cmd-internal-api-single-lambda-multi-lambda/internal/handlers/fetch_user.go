@@ -1,9 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
-	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -11,8 +11,8 @@ import (
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type fetchUserServicer interface {
-	FetchUser(ID int) (models.User, error)
+type userFetcher interface {
+	FetchUser(ctx context.Context, ID int) (models.User, error)
 }
 
 // HandleFetchUser is a Handler that returns a single user by ID.
@@ -27,8 +27,11 @@ type fetchUserServicer interface {
 // @Failure		400			{object}	handlers.responseErr
 // @Failure		500			{object}	handlers.responseErr
 // @Router		/user/{ID}	[GET]
-func HandleFetchUser(logger *slog.Logger, service fetchUserServicer) http.HandlerFunc {
+func HandleFetchUser(logger sLogger, service userFetcher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// setup
+		ctx := r.Context()
+
 		// get and validate ID
 		idString := chi.URLParam(r, "ID")
 		ID, err := strconv.Atoi(idString)
@@ -41,7 +44,7 @@ func HandleFetchUser(logger *slog.Logger, service fetchUserServicer) http.Handle
 		}
 
 		// get values from database
-		user, err := service.FetchUser(ID)
+		user, err := service.FetchUser(ctx, ID)
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):
@@ -50,7 +53,7 @@ func HandleFetchUser(logger *slog.Logger, service fetchUserServicer) http.Handle
 			default:
 				logger.Error("error getting object by ID", "error", err)
 				encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
-					Error: "Error validating object",
+					Error: "Internal server error",
 				})
 			}
 			return

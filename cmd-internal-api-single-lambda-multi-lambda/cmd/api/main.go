@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httplog/v2"
 	"github.com/jha-captech/user-microservice/internal/swagger"
 
 	"github.com/jha-captech/user-microservice/internal/config"
@@ -36,9 +36,12 @@ func run() error {
 		return fmt.Errorf("[in run]: %w", err)
 	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: cfg.LogLevel,
-	}))
+	logger := httplog.NewLogger("user-microservice", httplog.Options{
+		LogLevel:        cfg.LogLevel,
+		JSON:            false,
+		Concise:         true,
+		ResponseHeaders: false,
+	})
 
 	db, err := database.New(
 		fmt.Sprintf(
@@ -64,16 +67,7 @@ func run() error {
 
 	r := chi.NewRouter()
 
-	// log2 := httplog.NewLogger("user-microservice", httplog.Options{
-	// 	JSON:            false,
-	// 	Concise:         true,
-	// 	ResponseHeaders: false,
-	// })
-	// log2.Info("test log message")
-	//
-	// r.Use(httplog.RequestLogger(log2))
-
-	r.Use(middleware.Logger)
+	r.Use(httplog.RequestLogger(logger))
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{"*"},
@@ -108,9 +102,12 @@ func run() error {
 		fmt.Println()
 		logger.Info("Shutdown signal received")
 
-		shutdownCtx, _ := context.WithTimeout(
+		shutdownCtx, err := context.WithTimeout(
 			serverCtx, time.Duration(cfg.HTTP.ShutdownGracePeriod)*time.Second,
 		)
+		if err != nil {
+			log.Fatalf("Error creating context.WithTimeout. err: %v", err)
+		}
 
 		go func() {
 			<-shutdownCtx.Done()
@@ -119,8 +116,8 @@ func run() error {
 			}
 		}()
 
-		if err = serverInstance.Shutdown(shutdownCtx); err != nil {
-			log.Fatal(fmt.Sprintf("Error shutting down server. err: %v", err))
+		if err := serverInstance.Shutdown(shutdownCtx); err != nil {
+			log.Fatalf("Error shutting down server. err: %v", err)
 		}
 		serverStopCtx()
 	}()

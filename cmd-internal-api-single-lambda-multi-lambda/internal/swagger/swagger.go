@@ -2,14 +2,20 @@ package swagger
 
 import (
 	"fmt"
-	"log/slog"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jha-captech/user-microservice/internal/swagger/docs"
 	"github.com/swaggo/http-swagger/v2"
 )
 
-func RunSwagger(r *chi.Mux, logger *slog.Logger, host string) {
+type sLogger interface {
+	Debug(msg string, args ...any)
+	Info(msg string, args ...any)
+	Warn(msg string, args ...any)
+	Error(msg string, args ...any)
+}
+
+func RunSwagger(r *chi.Mux, logger sLogger, host string) {
 	// docs
 	docs.SwaggerInfo.Title = "User Microservice API"
 	docs.SwaggerInfo.Description = "Sample Go API"

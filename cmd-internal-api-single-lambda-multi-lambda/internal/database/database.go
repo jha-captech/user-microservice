@@ -4,15 +4,21 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	_ "github.com/lib/pq"
 )
 
+type sLogger interface {
+	Debug(msg string, args ...any)
+	Info(msg string, args ...any)
+	Warn(msg string, args ...any)
+	Error(msg string, args ...any)
+}
+
 // New Establish Session connection and migrate tables before
 // returning database.database struct.
-func New(connectionString string, logger *slog.Logger, retryCount int) (*sql.DB, error) {
+func New(connectionString string, logger sLogger, retryCount int) (*sql.DB, error) {
 	logger.Info("Attempting to connect to database")
 	db, err := retryWithReturn(retryCount, 100*time.Millisecond, func() (*sql.DB, error) {
 		return sql.Open("postgres", connectionString)

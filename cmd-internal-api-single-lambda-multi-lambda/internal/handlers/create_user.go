@@ -1,14 +1,14 @@
 package handlers
 
 import (
-	"log/slog"
+	"context"
 	"net/http"
 
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type createUserServicer interface {
-	CreateUser(user models.User) (int, error)
+type userCreator interface {
+	CreateUser(ctx context.Context, user models.User) (int, error)
 }
 
 // HandleCreateUser is a Handler that creates a user based on a user object from the request body.
@@ -24,8 +24,11 @@ type createUserServicer interface {
 // @Failure		500			{object}	handlers.responseErr
 // @Failure		409			{object}	handlers.responseErr
 // @Router		/user		[POST]
-func HandleCreateUser(logger *slog.Logger, service createUserServicer) http.HandlerFunc {
+func HandleCreateUser(logger sLogger, service userCreator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// setup
+		ctx := r.Context()
+
 		// get and validate body as object
 		userIn, problems, err := decodeValidateBody[inputUser, models.User](r)
 		if err != nil {
@@ -45,7 +48,7 @@ func HandleCreateUser(logger *slog.Logger, service createUserServicer) http.Hand
 		}
 
 		// create object in database
-		ID, err := service.CreateUser(userIn)
+		ID, err := service.CreateUser(ctx, userIn)
 		if err != nil {
 			logger.Error("error creating object to database", "error", err)
 			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{

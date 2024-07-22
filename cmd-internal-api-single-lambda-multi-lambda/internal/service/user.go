@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -19,17 +20,13 @@ func NewUser(db *sql.DB) *User {
 }
 
 // ListUsers returns a list of all User objects from the database.
-func (s User) ListUsers() ([]models.User, error) {
-	rows, err := s.database.Query(
-		`
-		SELECT 
-		    * 
-		FROM
-		    "users" 
-		`,
+func (s User) ListUsers(ctx context.Context) ([]models.User, error) {
+	rows, err := s.database.QueryContext(
+		ctx,
+		`SELECT * FROM "users"`,
 	)
 	if err != nil {
-		return []models.User{}, fmt.Errorf("[in ListUsers]:, %w", err)
+		return []models.User{}, fmt.Errorf("[in ListUsers]: %w", err)
 	}
 	defer rows.Close()
 
@@ -38,23 +35,24 @@ func (s User) ListUsers() ([]models.User, error) {
 		var user models.User
 		err = rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Role, &user.UserID)
 		if err != nil {
-			return []models.User{}, fmt.Errorf("[in ListUsers]:, %w", err)
+			return []models.User{}, fmt.Errorf("[in ListUsers]: %w", err)
 		}
 		users = append(users, user)
 	}
 
 	if err = rows.Err(); err != nil {
-		return []models.User{}, fmt.Errorf("[in ListUsers]:, %w", err)
+		return []models.User{}, fmt.Errorf("[in ListUsers]: %w", err)
 	}
 
 	return users, nil
 }
 
 // FetchUser returns am User objects from the database by ID.
-func (s User) FetchUser(ID int) (models.User, error) {
+func (s User) FetchUser(ctx context.Context, ID int) (models.User, error) {
 	var user models.User
 	err := s.database.
-		QueryRow(
+		QueryRowContext(
+			ctx,
 			`
 			SELECT
 				*
@@ -70,15 +68,16 @@ func (s User) FetchUser(ID int) (models.User, error) {
 		).
 		Scan(&user.ID, &user.FirstName, &user.LastName, &user.Role, &user.UserID)
 	if err != nil {
-		return models.User{}, fmt.Errorf("[in FetchUser]:, %w", err)
+		return models.User{}, fmt.Errorf("[in FetchUser]: %w", err)
 	}
 
 	return user, nil
 }
 
 // UpdateUser updates am User objects from the database by ID.
-func (s User) UpdateUser(ID int, user models.User) (models.User, error) {
-	_, err := s.database.Exec(
+func (s User) UpdateUser(ctx context.Context, ID int, user models.User) (models.User, error) {
+	_, err := s.database.ExecContext(
+		ctx,
 		`
 		UPDATE
 			"users"
@@ -105,9 +104,10 @@ func (s User) UpdateUser(ID int, user models.User) (models.User, error) {
 }
 
 // CreateUser creates am User objects in the database.
-func (s User) CreateUser(user models.User) (int, error) {
+func (s User) CreateUser(ctx context.Context, user models.User) (int, error) {
 	var ID int
-	err := s.database.QueryRow(
+	err := s.database.QueryRowContext(
+		ctx,
 		`
 		INSERT INTO "users" ("first_name", "last_name", "role", "user_id")
 			VALUES ($1, $2, $3, $4)
@@ -126,8 +126,9 @@ func (s User) CreateUser(user models.User) (int, error) {
 }
 
 // DeleteUser deletes am User objects from the database by ID.
-func (s User) DeleteUser(ID int) error {
-	_, err := s.database.Exec(
+func (s User) DeleteUser(ctx context.Context, ID int) error {
+	_, err := s.database.ExecContext(
+		ctx,
 		`
 		DELETE FROM "users"
 		WHERE "users"."id" = $1

@@ -19,7 +19,11 @@ db_seed: db_up
 
 # App
 
-.PHONYL: swagger
+.PHONY: mockery
+mockery:
+
+
+.PHONY: swagger
 swagger:
 	swag init --generalInfo "./../../cmd/api/main.go" --dir "./internal/handlers" --output "./internal/swagger/docs" --parseInternal
 

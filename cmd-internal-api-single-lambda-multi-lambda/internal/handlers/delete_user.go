@@ -1,9 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
-	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -11,9 +11,9 @@ import (
 	"github.com/jha-captech/user-microservice/internal/models"
 )
 
-type deleteUserServicer interface {
-	FetchUser(ID int) (models.User, error)
-	DeleteUser(ID int) error
+type userDeleter interface {
+	FetchUser(ctx context.Context, ID int) (models.User, error)
+	DeleteUser(ctx context.Context, ID int) error
 }
 
 // HandleDeleteUser is a Handler that deletes a user based on an ID.
@@ -28,8 +28,11 @@ type deleteUserServicer interface {
 // @Failure		400			{object}	handlers.responseErr
 // @Failure		500			{object}	handlers.responseErr
 // @Router		/user/{ID}	[DELETE]
-func HandleDeleteUser(logger *slog.Logger, service deleteUserServicer) http.HandlerFunc {
+func HandleDeleteUser(logger sLogger, service userDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// setup
+		ctx := r.Context()
+
 		// get and validate ID
 		idString := chi.URLParam(r, "ID")
 		ID, err := strconv.Atoi(idString)
@@ -42,7 +45,7 @@ func HandleDeleteUser(logger *slog.Logger, service deleteUserServicer) http.Hand
 		}
 
 		// check that object exists
-		_, err = service.FetchUser(ID)
+		_, err = service.FetchUser(ctx, ID)
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):
@@ -60,7 +63,7 @@ func HandleDeleteUser(logger *slog.Logger, service deleteUserServicer) http.Hand
 		}
 
 		// delete user
-		if err = service.DeleteUser(ID); err != nil {
+		if err = service.DeleteUser(ctx, ID); err != nil {
 			logger.Error("error deleting object by ID", "ID", ID, "error", err)
 			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{
 				Error: "Error deleting object.",
