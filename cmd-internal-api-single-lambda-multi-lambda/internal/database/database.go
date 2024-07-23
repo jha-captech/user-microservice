@@ -17,7 +17,7 @@ import (
 func New(ctx context.Context, connectionString string, logger log.Logger, retryDuration time.Duration) (*sql.DB, error) {
 	logger.Info("Attempting to connect to database")
 	retryCount := 0
-	db, err := retryResult(ctx, retryDuration, func() (*sql.DB, error) {
+	db, err := RetryResult(ctx, retryDuration, func() (*sql.DB, error) {
 		retryCount++
 		return sql.Open("postgres", connectionString)
 	})
@@ -29,18 +29,18 @@ func New(ctx context.Context, connectionString string, logger log.Logger, retryD
 			err,
 		)
 	}
-
 	logger.Info("Successfully connected to database", "retry count", retryCount)
 
 	logger.Info("Attempting to ping database")
-
 	retryCount = 0
-	err = retry(ctx, retryDuration, func() error {
+	err = Retry(ctx, retryDuration, func() error {
 		retryCount++
 		return db.Ping()
 	})
 	if err != nil {
-		db.Close()
+		if err := db.Close(); err != nil {
+			logger.Error("[in database.New] Failed to close database connection", "err", err)
+		}
 		return nil, fmt.Errorf(
 			"[in New] Failed to ping database with retry duration of %s and %d attempts: %w",
 			retryDuration,
@@ -55,14 +55,35 @@ func New(ctx context.Context, connectionString string, logger log.Logger, retryD
 	return db, nil
 }
 
-func retry(ctx context.Context, maxDuration time.Duration, retryFunc func() error) error {
-	_, err := retryResult(ctx, maxDuration, func() (any, error) {
+// Retry repeatedly calls the provided retryFunc until it succeeds or the maxDuration is exceeded.
+// It uses an exponential backoff strategy for retries.
+//
+// Parameters:
+// - ctx: The context to control the lifetime of the retry loop.
+// - maxDuration: The maximum duration to keep retrying.
+// - retryFunc: The function to call repeatedly until it succeeds.
+//
+// Returns:
+// - error: The last error returned by retryFunc, or nil if retryFunc succeeds.
+func Retry(ctx context.Context, maxDuration time.Duration, retryFunc func() error) error {
+	_, err := RetryResult(ctx, maxDuration, func() (any, error) {
 		return nil, retryFunc()
 	})
 	return err
 }
 
-func retryResult[T any](ctx context.Context, maxDuration time.Duration, retryFunc func() (T, error)) (T, error) {
+// RetryResult repeatedly calls the provided retryFunc until it succeeds or the maxDuration is exceeded.
+// It uses an exponential backoff strategy for retries.
+//
+// Parameters:
+// - ctx: The context to control the lifetime of the retry loop.
+// - maxDuration: The maximum duration to keep retrying.
+// - retryFunc: The function to call repeatedly until it succeeds. It should return a result and an error.
+//
+// Returns:
+// - T: The result returned by a successful call to retryFunc.
+// - error: The last error returned by retryFunc, or nil if retryFunc succeeds.
+func RetryResult[T any](ctx context.Context, maxDuration time.Duration, retryFunc func() (T, error)) (T, error) {
 	var (
 		returnData T
 		err        error
@@ -90,10 +111,6 @@ func retryResult[T any](ctx context.Context, maxDuration time.Duration, retryFun
 		}
 	}()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return returnData, err
-		}
-	}
+	<-ctx.Done()
+	return returnData, err
 }
